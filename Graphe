@@ -2,33 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-// Classe représentant un nœud (sommet) du graphe
-public class Noeud<T>
-{
-    public T Valeur { get; set; }
-    public List<Lien<T>> Liens { get; set; }
-    
-    public Noeud(T valeur)
-    {
-        Valeur = valeur;
-        Liens = new List<Lien<T>>();
-    }
-}
-
-// Classe représentant un lien (arête) entre deux nœuds
-public class Lien<T>
-{
-    public Noeud<T> Destination { get; set; }
-    public int Poids { get; set; } // Peut être 1 si non pondéré
-    
-    public Lien(Noeud<T> destination, int poids = 1)
-    {
-        Destination = destination;
-        Poids = poids;
-    }
-}
-
-// Classe représentant un graphe
 public class Graphe<T>
 {
     private Dictionary<T, Noeud<T>> noeuds;
