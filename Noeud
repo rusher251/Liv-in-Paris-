@@ -1,1 +1,16 @@
+namespace Liv_In_Paris
+{
+    class Noeud
+    {
+        public int Id { get; set; }
+        public string Nom { get; set; }
+        public List<Noeud> Voisins { get; set; }
 
+        public Noeud(int id, string nom)
+        {
+            Id = id;
+            Nom = nom;
+            Voisins = new List<Noeud>();
+        }
+    }
+}
