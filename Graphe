@@ -1,1 +1,137 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+// Classe représentant un nœud (sommet) du graphe
+public class Noeud<T>
+{
+    public T Valeur { get; set; }
+    public List<Lien<T>> Liens { get; set; }
+    
+    public Noeud(T valeur)
+    {
+        Valeur = valeur;
+        Liens = new List<Lien<T>>();
+    }
+}
+
+// Classe représentant un lien (arête) entre deux nœuds
+public class Lien<T>
+{
+    public Noeud<T> Destination { get; set; }
+    public int Poids { get; set; } // Peut être 1 si non pondéré
+    
+    public Lien(Noeud<T> destination, int poids = 1)
+    {
+        Destination = destination;
+        Poids = poids;
+    }
+}
+
+// Classe représentant un graphe
+public class Graphe<T>
+{
+    private Dictionary<T, Noeud<T>> noeuds;
+    private int[,] matriceAdjacence;
+    
+    public Graphe(int taille)
+    {
+        noeuds = new Dictionary<T, Noeud<T>>();
+        matriceAdjacence = new int[taille, taille];
+    }
+    
+    public void AjouterNoeud(T valeur)
+    {
+        if (!noeuds.ContainsKey(valeur))
+        {
+            noeuds[valeur] = new Noeud<T>(valeur);
+        }
+    }
+    
+    public void AjouterLien(T source, T destination, int poids = 1)
+    {
+        if (!noeuds.ContainsKey(source)) AjouterNoeud(source);
+        if (!noeuds.ContainsKey(destination)) AjouterNoeud(destination);
+        
+        noeuds[source].Liens.Add(new Lien<T>(noeuds[destination], poids));
+        noeuds[destination].Liens.Add(new Lien<T>(noeuds[source], poids)); // Graphe non orienté
+    }
+    
+    public void ChargerGrapheDepuisFichier(string cheminFichier)
+    {
+        using (StreamReader sr = new StreamReader(cheminFichier))
+        {
+            string ligne;
+            while ((ligne = sr.ReadLine()) != null)
+            {
+                if (ligne.StartsWith("%") || string.IsNullOrWhiteSpace(ligne))
+                    continue;
+                
+                string[] parties = ligne.Split(' ');
+                if (parties.Length == 2)
+                {
+                    int source = int.Parse(parties[0]);
+                    int destination = int.Parse(parties[1]);
+                    AjouterLien(source, destination);
+                }
+            }
+        }
+    }
+    
+    public void AfficherGraphe()
+    {
+        foreach (var noeud in noeuds.Values)
+        {
+            Console.Write(noeud.Valeur + " -> ");
+            foreach (var lien in noeud.Liens)
+            {
+                Console.Write(lien.Destination.Valeur + " ");
+            }
+            Console.WriteLine();
+        }
+    }
+    
+    public void ParcoursLargeur(T valeurDepart)
+    {
+        if (!noeuds.ContainsKey(valeurDepart)) return;
+        var visite = new HashSet<T>();
+        var file = new Queue<Noeud<T>>();
+        file.Enqueue(noeuds[valeurDepart]);
+        
+        while (file.Count > 0)
+        {
+            var noeudActuel = file.Dequeue();
+            if (visite.Contains(noeudActuel.Valeur)) continue;
+            
+            Console.WriteLine(noeudActuel.Valeur);
+            visite.Add(noeudActuel.Valeur);
+            
+            foreach (var lien in noeudActuel.Liens)
+            {
+                if (!visite.Contains(lien.Destination.Valeur))
+                    file.Enqueue(lien.Destination);
+            }
+        }
+    }
+    
+    public void ParcoursProfondeur(T valeurDepart)
+    {
+        if (!noeuds.ContainsKey(valeurDepart)) return;
+        var visite = new HashSet<T>();
+        DFS(noeuds[valeurDepart], visite);
+    }
+    
+    private void DFS(Noeud<T> noeud, HashSet<T> visite)
+    {
+        if (visite.Contains(noeud.Valeur)) return;
+        
+        Console.WriteLine(noeud.Valeur);
+        visite.Add(noeud.Valeur);
+        
+        foreach (var lien in noeud.Liens)
+        {
+            DFS(lien.Destination, visite);
+        }
+    }
+}
 
