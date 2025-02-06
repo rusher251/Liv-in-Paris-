@@ -1,1 +1,11 @@
+public class Lien<T>
+    {
+        public Noeud<T> Destination { get; set; }
+        public double Poids { get; set; }
 
+        public Lien(Noeud<T> destination, double poids)
+        {
+            Destination = destination;
+            Poids = poids;
+        }
+    }
