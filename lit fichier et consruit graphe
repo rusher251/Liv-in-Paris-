@@ -1,0 +1,78 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+class Graphe
+{
+    private Dictionary<int, List<int>> adjList = new();
+    private int[,] adjMatrix;
+    private int nbSommets;
+
+    public Graphe(int nbSommets)
+    {
+        this.nbSommets = nbSommets;
+        adjMatrix = new int[nbSommets + 1, nbSommets + 1];  // Sommets numérotés à partir de 1
+        for (int i = 1; i <= nbSommets; i++)
+            adjList[i] = new List<int>();
+    }
+
+    public void AjouterLien(int source, int destination)
+    {
+        adjList[source].Add(destination);
+        adjList[destination].Add(source);
+        adjMatrix[source, destination] = 1;
+        adjMatrix[destination, source] = 1;
+    }
+
+    public void ChargerGraphe(string cheminFichier)
+    {
+        using (StreamReader sr = new StreamReader(cheminFichier))
+        {
+            string ligne;
+            while ((ligne = sr.ReadLine()) != null)
+            {
+                if (ligne.StartsWith("%") || string.IsNullOrWhiteSpace(ligne)) continue;  // Ignorer commentaires
+                string[] parties = ligne.Split();
+                if (parties.Length == 2)
+                {
+                    int u = int.Parse(parties[0]);
+                    int v = int.Parse(parties[1]);
+                    AjouterLien(u, v);
+                }
+            }
+        }
+    }
+
+    public void AfficherListeAdjacence()
+    {
+        Console.WriteLine("Liste d'adjacence :");
+        foreach (var pair in adjList)
+        {
+            Console.Write(pair.Key + " -> ");
+            Console.WriteLine(string.Join(", ", pair.Value));
+        }
+    }
+
+    public void AfficherMatriceAdjacence()
+    {
+        Console.WriteLine("\nMatrice d'adjacence :");
+        for (int i = 1; i <= nbSommets; i++)
+        {
+            for (int j = 1; j <= nbSommets; j++)
+                Console.Write(adjMatrix[i, j] + " ");
+            Console.WriteLine();
+        }
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Graphe graphe = new Graphe(34);
+        graphe.ChargerGraphe("karate.mtx");  // Remplacez par le bon chemin
+
+        graphe.AfficherListeAdjacence();
+        graphe.AfficherMatriceAdjacence();
+    }
+}
