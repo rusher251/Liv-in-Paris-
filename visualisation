@@ -1,0 +1,83 @@
+using System;
+using System.Collections.Generic;
+using SkiaSharp;
+
+class VisualisationGraphe
+{
+    private Dictionary<int, List<int>> adjList;
+    private int width = 800, height = 600;
+    private Dictionary<int, SKPoint> positions = new();
+
+    public VisualisationGraphe(Dictionary<int, List<int>> adjList)
+    {
+        this.adjList = adjList;
+        GénérerPositions();
+    }
+
+    private void GénérerPositions()
+    {
+        Random rand = new Random();
+        foreach (var noeud in adjList.Keys)
+        {
+            positions[noeud] = new SKPoint(rand.Next(50, width - 50), rand.Next(50, height - 50));
+        }
+    }
+
+    public void DessinerGraphe(string outputPath)
+    {
+        using (var bitmap = new SKBitmap(width, height))
+        using (var canvas = new SKCanvas(bitmap))
+        using (var paint = new SKPaint { Color = SKColors.Black, IsAntialias = true, StrokeWidth = 2 })
+        {
+            canvas.Clear(SKColors.White);
+
+            foreach (var noeud in adjList)
+            {
+                foreach (var voisin in noeud.Value)
+                {
+                    if (noeud.Key < voisin)
+                    {
+                        canvas.DrawLine(positions[noeud.Key], positions[voisin], paint);
+                    }
+                }
+            }
+
+            using (var nodePaint = new SKPaint { Color = SKColors.Blue, IsAntialias = true })
+            using (var textPaint = new SKPaint { Color = SKColors.White, TextSize = 20 })
+            {
+                foreach (var noeud in positions)
+                {
+                    canvas.DrawCircle(noeud.Value, 20, nodePaint);
+                    canvas.DrawText(noeud.Key.ToString(), noeud.Value.X - 10, noeud.Value.Y + 5, textPaint);
+                }
+            }
+
+            using (var image = SKImage.FromBitmap(bitmap))
+            using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+            {
+                using (var stream = System.IO.File.OpenWrite(outputPath))
+                {
+                    data.SaveTo(stream);
+                }
+            }
+        }
+        Console.WriteLine("Graphe généré : " + outputPath);
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Dictionary<int, List<int>> adjList = new()
+        {
+            {1, new List<int> {2, 3, 4}},
+            {2, new List<int> {1, 3}},
+            {3, new List<int> {1, 2, 4}},
+            {4, new List<int> {1, 3}}
+        };
+
+        VisualisationGraphe vis = new VisualisationGraphe(adjList);
+        vis.DessinerGraphe("graphe_karate.png");
+    }
+}
