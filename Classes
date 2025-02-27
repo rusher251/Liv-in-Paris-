@@ -1,0 +1,47 @@
+public class Noeud
+{
+    public int Id { get; set; }
+    public List<Lien> Liens { get; set; }
+    
+    public Noeud(int id)
+    {
+        Id = id;
+        Liens = new List<Lien>();
+    }
+}
+
+public class Lien
+{
+    public Noeud Destination { get; set; }
+    public int Poids { get; set; }
+    
+    public Lien(Noeud destination, int poids)
+    {
+        Destination = destination;
+        Poids = poids;
+    }
+}
+
+public class Graphe
+{
+    public Dictionary<int, Noeud> Noeuds { get; set; }
+    
+    public Graphe()
+    {
+        Noeuds = new Dictionary<int, Noeud>();
+    }
+    
+    public void AjouterNoeud(int id)
+    {
+        if (!Noeuds.ContainsKey(id))
+            Noeuds[id] = new Noeud(id);
+    }
+    
+    public void AjouterLien(int idSource, int idDestination, int poids)
+    {
+        AjouterNoeud(idSource);
+        AjouterNoeud(idDestination);
+        
+        Noeuds[idSource].Liens.Add(new Lien(Noeuds[idDestination], poids));
+    }
+}
