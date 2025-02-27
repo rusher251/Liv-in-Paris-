@@ -24,22 +24,12 @@ CREATE TABLE Commandes (
     FOREIGN KEY (ClientID) REFERENCES Clients(ClientID),
     FOREIGN KEY (CuisinierID) REFERENCES Cuisiniers(CuisinierID)
 );
-Requêtes SQL simples :
-Lister toutes les commandes passées par un client donné :
-sql
-Copier
-Modifier
+
 SELECT * FROM Commandes WHERE ClientID = 1;
-Nombre de commandes par cuisinier :
-sql
-Copier
-Modifier
+
 SELECT Cuisiniers.Nom, COUNT(Commandes.CommandeID) AS NbCommandes
 FROM Commandes
 JOIN Cuisiniers ON Commandes.CuisinierID = Cuisiniers.CuisinierID
 GROUP BY Cuisiniers.Nom;
-Récupérer les commandes en attente :
-sql
-Copier
-Modifier
+
 SELECT * FROM Commandes WHERE Statut = 'En attente';
