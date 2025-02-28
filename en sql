@@ -1,35 +1,127 @@
-CREATE DATABASE Restauration;
-USE Restauration;
+CREATE TABLE LigneDeCommande(
+        ID           Varchar (50) NOT NULL ,
+        ID_Commande  Varchar (50) NOT NULL ,
+        ID_Plat      Varchar (50) NOT NULL ,
+        Quantite     Varchar (50) NOT NULL
+      ,CONSTRAINT LigneDeCommande_PK PRIMARY KEY (ID)
+)ENGINE=InnoDB;
 
-CREATE TABLE Clients (
-    ClientID INT PRIMARY KEY AUTO_INCREMENT,
-    Nom VARCHAR(50),
-    Prenom VARCHAR(50),
-    Email VARCHAR(100),
-    Telephone VARCHAR(15)
-);
 
-CREATE TABLE Cuisiniers (
-    CuisinierID INT PRIMARY KEY AUTO_INCREMENT,
-    Nom VARCHAR(50),
-    Specialite VARCHAR(50)
-);
+#------------------------------------------------------------
+# Table: Plat
+#------------------------------------------------------------
 
-CREATE TABLE Commandes (
-    CommandeID INT PRIMARY KEY AUTO_INCREMENT,
-    ClientID INT,
-    CuisinierID INT,
-    DateCommande DATETIME DEFAULT CURRENT_TIMESTAMP,
-    Statut VARCHAR(20) DEFAULT 'En attente',
-    FOREIGN KEY (ClientID) REFERENCES Clients(ClientID),
-    FOREIGN KEY (CuisinierID) REFERENCES Cuisiniers(CuisinierID)
-);
+CREATE TABLE Plat(
+        ID                        Varchar (50) NOT NULL ,
+        Nom                       Varchar (50) NOT NULL ,
+        Type_entree/plat/dessert_ Varchar (50) NOT NULL ,
+        NombreDePersonnes         Int NOT NULL ,
+        Date_Fabrication          Date NOT NULL ,
+        Date_Preremption          Date NOT NULL ,
+        Prix                      Float NOT NULL ,
+        Nationalite               Varchar (50) NOT NULL ,
+        RegimeAlimentaire         Varchar (50) NOT NULL ,
+        Ingredients               Varchar (50) NOT NULL ,
+        Photo                     Varchar (50) NOT NULL ,
+        Recette                   Varchar (50) NOT NULL ,
+        ID_LigneDeCommande        Varchar (50) NOT NULL
+      ,CONSTRAINT Plat_PK PRIMARY KEY (ID)
 
-SELECT * FROM Commandes WHERE ClientID = 1;
+      ,CONSTRAINT Plat_LigneDeCommande_FK FOREIGN KEY (ID_LigneDeCommande) REFERENCES LigneDeCommande(ID)
+)ENGINE=InnoDB;
 
-SELECT Cuisiniers.Nom, COUNT(Commandes.CommandeID) AS NbCommandes
-FROM Commandes
-JOIN Cuisiniers ON Commandes.CuisinierID = Cuisiniers.CuisinierID
-GROUP BY Cuisiniers.Nom;
 
-SELECT * FROM Commandes WHERE Statut = 'En attente';
+#------------------------------------------------------------
+# Table: Commande
+#------------------------------------------------------------
+
+CREATE TABLE Commande(
+        ID                 Varchar (50) NOT NULL ,
+        ID_Client          Varchar (50) NOT NULL ,
+        Date_Transaction   Date NOT NULL ,
+        MontantTotal       Float NOT NULL ,
+        ID_LigneDeCommande Varchar (50) NOT NULL
+      ,CONSTRAINT Commande_PK PRIMARY KEY (ID)
+
+      ,CONSTRAINT Commande_LigneDeCommande_FK FOREIGN KEY (ID_LigneDeCommande) REFERENCES LigneDeCommande(ID)
+)ENGINE=InnoDB;
+
+
+#------------------------------------------------------------
+# Table: client
+#------------------------------------------------------------
+
+CREATE TABLE client(
+        ID_Utilisateur            Varchar (50) NOT NULL ,
+        Type_entreprise/personne_ Varchar (50) NOT NULL ,
+        Nom_entreprise            Varchar (50) NOT NULL ,
+        Referant                  Varchar (50) NOT NULL ,
+        ID                        Varchar (50) NOT NULL
+      ,CONSTRAINT client_PK PRIMARY KEY (ID_Utilisateur)
+
+      ,CONSTRAINT client_Commande_FK FOREIGN KEY (ID) REFERENCES Commande(ID)
+)ENGINE=InnoDB;
+
+
+#------------------------------------------------------------
+# Table: Livraison
+#------------------------------------------------------------
+
+CREATE TABLE Livraison(
+        ID                 Varchar (50) NOT NULL ,
+        ID_Cuisinier       Varchar (50) NOT NULL ,
+        ID_Ligne_Commande  Varchar (50) NOT NULL ,
+        Zone_Livraison     Varchar (50) NOT NULL ,
+        Statut             Varchar (50) NOT NULL
+      ,CONSTRAINT Livraison_PK PRIMARY KEY (ID)
+)ENGINE=InnoDB;
+
+
+#------------------------------------------------------------
+# Table: Cuisinier
+#------------------------------------------------------------
+
+CREATE TABLE Cuisinier(
+        ID_Utilisateur  Varchar (50) NOT NULL ,
+        ID              Varchar (50) NOT NULL ,
+        ID_Livraison    Varchar (50) NOT NULL
+      ,CONSTRAINT Cuisinier_PK PRIMARY KEY (ID_Utilisateur)
+
+      ,CONSTRAINT Cuisinier_Plat_FK FOREIGN KEY (ID) REFERENCES Plat(ID)
+      ,CONSTRAINT Cuisinier_Livraison0_FK FOREIGN KEY (ID_Livraison) REFERENCES Livraison(ID)
+)ENGINE=InnoDB;
+
+
+#------------------------------------------------------------
+# Table: utilisateur
+#------------------------------------------------------------
+
+CREATE TABLE utilisateur(
+        ID                     Varchar (50) NOT NULL ,
+        nom                    Text NOT NULL ,
+        Prenom                 Text NOT NULL ,
+        Adresse                Varchar (50) NOT NULL ,
+        Telephone              Int NOT NULL ,
+        Identifiant            Varchar (50) NOT NULL ,
+        MotDePasse             Varchar (50) NOT NULL ,
+        ID_Utilisateur         Varchar (50) NOT NULL ,
+        ID_Utilisateur__client Varchar (50) NOT NULL
+      ,CONSTRAINT utilisateur_PK PRIMARY KEY (ID)
+
+      ,CONSTRAINT utilisateur_Cuisinier_FK FOREIGN KEY (ID_Utilisateur) REFERENCES Cuisinier(ID_Utilisateur)
+      ,CONSTRAINT utilisateur_client0_FK FOREIGN KEY (ID_Utilisateur__client) REFERENCES client(ID_Utilisateur)
+)ENGINE=InnoDB;
+
+
+#------------------------------------------------------------
+# Table: est livrée par
+#------------------------------------------------------------
+
+CREATE TABLE est_livree_par(
+        ID                 Varchar (50) NOT NULL ,
+        ID_LigneDeCommande Varchar (50) NOT NULL
+      ,CONSTRAINT est_livree_par_PK PRIMARY KEY (ID,ID_LigneDeCommande)
+
+      ,CONSTRAINT est_livree_par_Livraison_FK FOREIGN KEY (ID) REFERENCES Livraison(ID)
+      ,CONSTRAINT est_livree_par_LigneDeCommande0_FK FOREIGN KEY (ID_LigneDeCommande) REFERENCES LigneDeCommande(ID)
+)ENGINE=InnoDB;
