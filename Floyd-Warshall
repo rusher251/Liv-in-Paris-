@@ -1,0 +1,46 @@
+public class FloydWarshall
+{
+    public static Dictionary<Noeud<T>, Dictionary<Noeud<T>, double>> CalculerTousLesPlusCourtsChemins<T>(Graphe<T> graphe)
+    {
+        var distances = new Dictionary<Noeud<T>, Dictionary<Noeud<T>, double>>();
+
+        // Initialisation
+        foreach (var noeud in graphe.Noeuds)
+        {
+            distances[noeud] = new Dictionary<Noeud<T>, double>();
+            foreach (var voisin in graphe.Noeuds)
+            {
+                if (noeud == voisin)
+                    distances[noeud][voisin] = 0;
+                else
+                    distances[noeud][voisin] = double.MaxValue;
+            }
+        }
+
+        // Remplir les distances avec les arêtes existantes
+        foreach (var noeud in graphe.Noeuds)
+        {
+            foreach (var arete in noeud.Aretes)
+            {
+                distances[noeud][arete.Destination] = arete.Poids;
+            }
+        }
+
+        // Appliquer Floyd-Warshall
+        foreach (var intermédiaire in graphe.Noeuds)
+        {
+            foreach (var source in graphe.Noeuds)
+            {
+                foreach (var destination in graphe.Noeuds)
+                {
+                    if (distances[source][destination] > distances[source][intermédiaire] + distances[intermédiaire][destination])
+                    {
+                        distances[source][destination] = distances[source][intermédiaire] + distances[intermédiaire][destination];
+                    }
+                }
+            }
+        }
+
+        return distances;
+    }
+}
