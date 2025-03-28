@@ -1,0 +1,21 @@
+public class Graphe<T>
+{
+    public List<Noeud<T>> Noeuds { get; set; }
+
+    public Graphe()
+    {
+        Noeuds = new List<Noeud<T>>();
+    }
+
+    // Ajouter un nœud au graphe
+    public void AjouterNoeud(Noeud<T> noeud)
+    {
+        Noeuds.Add(noeud);
+    }
+
+    // Trouver un nœud par sa valeur
+    public Noeud<T> TrouverNoeud(T valeur)
+    {
+        return Noeuds.FirstOrDefault(n => EqualityComparer<T>.Default.Equals(n.Valeur, valeur));
+    }
+}
