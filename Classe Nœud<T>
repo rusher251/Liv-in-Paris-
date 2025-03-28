@@ -1,0 +1,17 @@
+public class Noeud<T>
+{
+    public T Valeur { get; set; } // Valeur qui représente les informations du nœud (ex: une station)
+    public List<Arete<T>> Aretes { get; set; } // Liste des arêtes (connexions) sortantes
+
+    public Noeud(T valeur)
+    {
+        Valeur = valeur;
+        Aretes = new List<Arete<T>>();
+    }
+
+    // Ajouter une arête au nœud
+    public void AjouterArete(Arete<T> arete)
+    {
+        Aretes.Add(arete);
+    }
+}
