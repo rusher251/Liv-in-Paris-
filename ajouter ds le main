@@ -1,0 +1,5 @@
+Console.WriteLine("Chemin le plus court:");
+foreach (var noeud in chemin)
+{
+    Console.WriteLine(noeud.Valeur);
+}
