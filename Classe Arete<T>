@@ -1,0 +1,13 @@
+public class Arete<T>
+{
+    public Noeud<T> Destination { get; set; }
+    public double Poids { get; set; } // Temps de trajet entre deux stations
+    public bool EstDoubleSens { get; set; } // Indiquer si l'arête est à double sens ou non
+
+    public Arete(Noeud<T> destination, double poids, bool estDoubleSens = false)
+    {
+        Destination = destination;
+        Poids = poids;
+        EstDoubleSens = estDoubleSens;
+    }
+}
