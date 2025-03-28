@@ -1,0 +1,37 @@
+public class BellmanFord
+{
+    public static Dictionary<Noeud<T>, double> TrouverCheminLePlusCourt<T>(Graphe<T> graphe, Noeud<T> source)
+    {
+        var distances = new Dictionary<Noeud<T>, double>();
+        var previousNodes = new Dictionary<Noeud<T>, Noeud<T>>();
+
+        // Initialisation
+        foreach (var noeud in graphe.Noeuds)
+        {
+            distances[noeud] = double.MaxValue;
+            previousNodes[noeud] = null;
+        }
+        distances[source] = 0;
+
+        // Relaxation des arêtes
+        for (int i = 1; i < graphe.Noeuds.Count; i++)
+        {
+            foreach (var noeud in graphe.Noeuds)
+            {
+                foreach (var arete in noeud.Aretes)
+                {
+                    var voisin = arete.Destination;
+                    var nouvelleDistance = distances[noeud] + arete.Poids;
+
+                    if (nouvelleDistance < distances[voisin])
+                    {
+                        distances[voisin] = nouvelleDistance;
+                        previousNodes[voisin] = noeud;
+                    }
+                }
+            }
+        }
+
+        return distances;
+    }
+}
