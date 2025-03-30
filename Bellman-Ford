@@ -1,3 +1,4 @@
+// Complexité O(n × E)	Non nécessaire
 public class BellmanFord
 {
     public static Dictionary<Noeud<T>, double> TrouverCheminLePlusCourt<T>(Graphe<T> graphe, Noeud<T> source)
