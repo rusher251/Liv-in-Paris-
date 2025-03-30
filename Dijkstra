@@ -1,4 +1,4 @@
-// Complexité O((V + E) log V) Optimal 
+// Complexité O((n + E) log n) Optimal 
 public class Dijkstra
 {
     public static Dictionary<Noeud<T>, double> TrouverCheminLePlusCourt<T>(Graphe<T> graphe, Noeud<T> source)
