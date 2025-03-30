@@ -1,4 +1,16 @@
-// Complexité O((n + E) log n) Optimal 
+// Complexité O((n + E) log n) Optimal & rapidité 
+// Poids positifs :
+// Les distances/temps entre stations de métro sont toujours positifs (pas de cycles négatifs).
+// → Dijkstra est conçu spécifiquement pour les graphes à poids non négatifs, contrairement à Bellman-Ford.
+
+//Graphe orienté :
+// Certaines liaisons du métro parisien sont à sens unique.
+// → Dijkstra gère parfaitement les graphes orientés.
+// un réseau de 300 stations (n = 300) et 500 liaisons (E = 500) 
+// Dijkstra (300+500)×log2​(300) ≈ 6560 Opérations estimées
+// Bellman-Ford 300×500	 = 150000 Opérations estimées
+// Floyd-Warshall 300²= 27000000 Opérations estimées
+
 public class Dijkstra
 {
     public static Dictionary<Noeud<T>, double> TrouverCheminLePlusCourt<T>(Graphe<T> graphe, Noeud<T> source)
