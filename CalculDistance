@@ -1,23 +1,17 @@
 public static class CalculDistance
 {
-    private const double RayonTerre = 6371; // Rayon de la Terre en kilomètres
+    private const double RayonTerre = 6371; // Rayon moyen de la Terre en km
 
-    public static double CalculerDistance(double lat1, double lon1, double lat2, double lon2)
+    public static double Calculer(double lat1, double lon1, double lat2, double lon2)
     {
-        double dLat = ConvertirEnRadian(lat2 - lat1);
-        double dLon = ConvertirEnRadian(lon2 - lon1);
+        double toRad = Math.PI / 180.0; // Facteur de conversion en radians
+        double dLat = (lat2 - lat1) * toRad;
+        double dLon = (lon2 - lon1) * toRad;
 
         double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                   Math.Cos(ConvertirEnRadian(lat1)) * Math.Cos(ConvertirEnRadian(lat2)) *
+                   Math.Cos(lat1 * toRad) * Math.Cos(lat2 * toRad) *
                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
 
-        double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-
-        return RayonTerre * c; // Distance en kilomètres
-    }
-
-    private static double ConvertirEnRadian(double degre)
-    {
-        return degre * (Math.PI / 180);
+        return RayonTerre * (2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a)));  // distance en km 
     }
 }
