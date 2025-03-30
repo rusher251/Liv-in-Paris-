@@ -1,4 +1,4 @@
-// Complexité O(n × E)	Non nécessaire
+// Complexité O(n × E)	Non nécessaire (temps de livraison négatifs théoriques)
 public class BellmanFord
 {
     public static Dictionary<Noeud<T>, double> TrouverCheminLePlusCourt<T>(Graphe<T> graphe, Noeud<T> source)
@@ -6,19 +6,23 @@ public class BellmanFord
         var distances = new Dictionary<Noeud<T>, double>();
         var previousNodes = new Dictionary<Noeud<T>, Noeud<T>>();
 
-        // Initialisation
+        // PositiveInfinity (évite les dépassements)
         foreach (var noeud in graphe.Noeuds)
         {
-            distances[noeud] = double.MaxValue;
+            distances[noeud] = double.PositiveInfinity;
             previousNodes[noeud] = null;
         }
         distances[source] = 0;
 
-        // Relaxation des arêtes
-        for (int i = 1; i < graphe.Noeuds.Count; i++)
+        for (int i = 0; i < graphe.Noeuds.Count - 1; i++)
         {
+            bool miseAJour = false;
+
             foreach (var noeud in graphe.Noeuds)
             {
+                // Ignore les nœuds inaccessibles
+                if (distances[noeud] == double.PositiveInfinity) continue;
+
                 foreach (var arete in noeud.Aretes)
                 {
                     var voisin = arete.Destination;
@@ -28,7 +32,25 @@ public class BellmanFord
                     {
                         distances[voisin] = nouvelleDistance;
                         previousNodes[voisin] = noeud;
+                        miseAJour = true;
                     }
+                }
+            }
+
+            // arrêt si aucune mise à jour
+            if (!miseAJour) break;
+        }
+
+        // Détection des cycles négatifs
+        foreach (var noeud in graphe.Noeuds)
+        {
+            foreach (var arete in noeud.Aretes)
+            {
+                if (distances[noeud] != double.PositiveInfinity &&
+                    distances[noeud] + arete.Poids < distances[arete.Destination])
+                {
+                    // Marque les nœuds affectés par un cycle négatif (optionnel)
+                    distances[arete.Destination] = double.NegativeInfinity;
                 }
             }
         }
