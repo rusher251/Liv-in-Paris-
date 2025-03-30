@@ -1,3 +1,4 @@
+// Complexité O(n³)  Surcharge inutile
 public class FloydWarshall
 {
     public static Dictionary<Noeud<T>, Dictionary<Noeud<T>, double>> CalculerTousLesPlusCourtsChemins<T>(Graphe<T> graphe)
