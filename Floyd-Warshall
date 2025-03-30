@@ -5,20 +5,17 @@ public class FloydWarshall
     {
         var distances = new Dictionary<Noeud<T>, Dictionary<Noeud<T>, double>>();
 
-        // Initialisation
-        foreach (var noeud in graphe.Noeuds)
+        // Initialisation avec PositiveInfinity
+        foreach (var source in graphe.Noeuds)
         {
-            distances[noeud] = new Dictionary<Noeud<T>, double>();
-            foreach (var voisin in graphe.Noeuds)
+            distances[source] = new Dictionary<Noeud<T>, double>();
+            foreach (var dest in graphe.Noeuds)
             {
-                if (noeud == voisin)
-                    distances[noeud][voisin] = 0;
-                else
-                    distances[noeud][voisin] = double.MaxValue;
+                distances[source][dest] = (source == dest) ? 0 : double.PositiveInfinity;
             }
         }
 
-        // Remplir les distances avec les arêtes existantes
+        // Remplir les arêtes existantes
         foreach (var noeud in graphe.Noeuds)
         {
             foreach (var arete in noeud.Aretes)
@@ -27,16 +24,18 @@ public class FloydWarshall
             }
         }
 
-        // Appliquer Floyd-Warshall
-        foreach (var intermédiaire in graphe.Noeuds)
+        // Algorithme Floyd-Warshall
+        foreach (var k in graphe.Noeuds)
         {
-            foreach (var source in graphe.Noeuds)
+            foreach (var i in graphe.Noeuds)
             {
-                foreach (var destination in graphe.Noeuds)
+                foreach (var j in graphe.Noeuds)
                 {
-                    if (distances[source][destination] > distances[source][intermédiaire] + distances[intermédiaire][destination])
+                    if (distances[i][k] != double.PositiveInfinity && 
+                        distances[k][j] != double.PositiveInfinity &&
+                        distances[i][j] > distances[i][k] + distances[k][j])
                     {
-                        distances[source][destination] = distances[source][intermédiaire] + distances[intermédiaire][destination];
+                        distances[i][j] = distances[i][k] + distances[k][j];
                     }
                 }
             }
