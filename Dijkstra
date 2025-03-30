@@ -4,25 +4,29 @@ public class Dijkstra
     public static Dictionary<Noeud<T>, double> TrouverCheminLePlusCourt<T>(Graphe<T> graphe, Noeud<T> source)
     {
         var distances = new Dictionary<Noeud<T>, double>();
-        var previousNodes = new Dictionary<Noeud<T>, Noeud<T>>();
-        var nodes = new List<Noeud<T>>();
+        var visited = new HashSet<Noeud<T>>(); // Évite les traitements redondants
 
         // Initialisation
         foreach (var noeud in graphe.Noeuds)
         {
             distances[noeud] = double.MaxValue;
-            previousNodes[noeud] = null;
-            nodes.Add(noeud);
         }
         distances[source] = 0;
 
+        var nodes = new List<Noeud<T>>(graphe.Noeuds);
+
         while (nodes.Count > 0)
         {
-            // Trouver le nœud avec la distance minimale
-            var noeudCourant = nodes.OrderBy(n => distances[n]).First();
+            // Trouver le nœud non visité avec la distance minimale
+            var noeudCourant = nodes.Where(n => !visited.Contains(n))
+                                    .OrderBy(n => distances[n])
+                                    .FirstOrDefault();
+
+            if (noeudCourant == null) break; // Tous les nœuds accessibles traités
+
+            visited.Add(noeudCourant);
             nodes.Remove(noeudCourant);
 
-            // Mettre à jour les distances des voisins
             foreach (var arete in noeudCourant.Aretes)
             {
                 var voisin = arete.Destination;
@@ -31,7 +35,6 @@ public class Dijkstra
                 if (nouvelleDistance < distances[voisin])
                 {
                     distances[voisin] = nouvelleDistance;
-                    previousNodes[voisin] = noeudCourant;
                 }
             }
         }
