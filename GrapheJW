@@ -1,0 +1,71 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace _30mars
+{
+    public class Graphe<T> where T : IIdentifiable
+    {
+        public List<Noeud<T>> Noeuds { get; set; } = new List<Noeud<T>>();
+
+        public void AjouterNoeud(Noeud<T> noeud)
+        {
+            Noeuds.Add(noeud);
+        }
+
+        public void AjouterLien(Noeud<T> a, Noeud<T> b, double poids, bool bidirectionnel = true)
+        {
+            if (!a.Voisins.Contains(b))
+            {
+                a.Voisins.Add(b);
+                a.Poids[b] = poids;
+            }
+
+            if (bidirectionnel && !b.Voisins.Contains(a))
+            {
+                b.Voisins.Add(a);
+                b.Poids[a] = poids;
+            }
+        }
+
+        public void AfficherListeAdjacence()
+        {
+            foreach (var noeud in Noeuds)
+            {
+                Console.Write($"{noeud.Valeur.Nom} -> ");
+                Console.WriteLine(string.Join(", ", noeud.Voisins.Select(v => v.Valeur.Nom)));
+            }
+        }
+
+        public void AfficherMatriceAdjacence()
+        {
+            const int maxToShow = 20;
+            var subset = Noeuds.Take(maxToShow).ToList();
+
+            // En-tête
+            Console.Write("            ");
+            foreach (var col in subset)
+            {
+                string nom = col.Valeur.Nom.Length > 10 ? col.Valeur.Nom.Substring(0, 10) : col.Valeur.Nom;
+                Console.Write($"{nom.PadRight(12)}");
+            }
+            Console.Write("\n");
+
+            for (int i = 0; i < subset.Count; i++)
+            {
+                string nomLigne = subset[i].Valeur.Nom.Length > 10 ? subset[i].Valeur.Nom.Substring(0, 10) : subset[i].Valeur.Nom;
+                Console.Write(nomLigne.PadRight(12));
+
+                for (int j = 0; j < subset.Count; j++)
+                {
+                    int valeur = subset[i].Voisins.Contains(subset[j]) ? 1 : 0;
+                    Console.Write(valeur.ToString().PadRight(12));
+                }
+
+                Console.Write("\n");
+            }
+
+            Console.WriteLine($"\n⚠️ Affichage limité aux {maxToShow} premières stations pour lisibilité.");
+        }
+    }
+}
