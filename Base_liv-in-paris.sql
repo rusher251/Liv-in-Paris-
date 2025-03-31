@@ -57,15 +57,38 @@ CREATE TABLE ElementsCommande (
     FOREIGN KEY (IdPlat) REFERENCES Plats(IdPlat)
 )ENGINE=InnoDB;
 
+-- Table des livreurs
+CREATE TABLE Livreurs (
+    IdLivreur INT PRIMARY KEY AUTO_INCREMENT,
+    Prenom VARCHAR(50) NOT NULL,
+    Nom VARCHAR(50) NOT NULL,
+    Telephone VARCHAR(20) NOT NULL,
+    Statut ENUM('Disponible', 'En livraison', 'Indisponible') DEFAULT 'Disponible'
+)ENGINE=InnoDB;
+
+
 -- Table des trajets de livraison
 CREATE TABLE TrajetsLivraison (
     IdTrajet INT PRIMARY KEY AUTO_INCREMENT,
     IdElementCommande INT NOT NULL,
+    IdLivreur INT,
     IdStationDepart INT,
     IdStationArrivee INT,
     DescriptionTrajet TEXT,
-    TempsEstime INT, -- en minutes
-    FOREIGN KEY (IdElementCommande) REFERENCES ElementsCommande(IdElementCommande)
+    TempsEstime INT,
+    FOREIGN KEY (IdElementCommande) REFERENCES ElementsCommande(IdElementCommande),
+    FOREIGN KEY (IdLivreur) REFERENCES Livreurs(IdLivreur),
+    FOREIGN KEY (IdStationDepart) REFERENCES Stations(IdStation),
+    FOREIGN KEY (IdStationArrivee) REFERENCES Stations(IdStation)
+)ENGINE=InnoDB;
+
+-- Table des Stations
+CREATE TABLE Stations (
+    IdStation INT PRIMARY KEY AUTO_INCREMENT,
+    Nom VARCHAR(100) NOT NULL,
+    CoordonneesGPS VARCHAR(50),
+    Ligne VARCHAR(10),
+    Commune VARCHAR(50)
 )ENGINE=InnoDB;
 
 -- Table des avis
