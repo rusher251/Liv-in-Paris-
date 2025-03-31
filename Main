@@ -1,0 +1,86 @@
+using System;
+using System.IO;
+using OfficeOpenXml;
+
+namespace _30mars
+{
+    class Program
+    {
+        static void Main()
+        {
+            string cheminFichierStations = "MetroParis2.xlsx";
+            Graphe<Station> graphe = new Graphe<Station>();
+
+            // Charger les stations et liaisons
+            ChargerStationsEtLignesDepuisExcel(cheminFichierStations, graphe);
+
+            // Affichage
+            Console.WriteLine("\n=== Liste d'adjacence ===");
+            graphe.AfficherListeAdjacence();
+
+            Console.WriteLine("\n=== Matrice d'adjacence ===");
+            graphe.AfficherMatriceAdjacence();
+
+            // Générer le graphe en image PNG
+            GrapheVisualizer.GenererImageGraphe(graphe, "graphe.png");
+
+            // Ouvrir automatiquement l'image
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "graphe.png",
+                UseShellExecute = true
+            });
+
+            Console.WriteLine("\n✅ Le graphe a été généré dans 'graphe.png' !");
+        }
+
+        public static void ChargerStationsEtLignesDepuisExcel(string cheminFichier, Graphe<Station> graphe)
+        {
+            FileInfo fi = new FileInfo(cheminFichier);
+            using (var package = new ExcelPackage(fi))
+            {
+                var worksheet = package.Workbook.Worksheets["Noeuds"];
+                var rowCount = worksheet.Dimension.Rows;
+
+                Dictionary<string, List<Noeud<Station>>> lignesStations = new();
+                int id = 1;
+
+                for (int row = 2; row <= rowCount; row++)
+                {
+                    string nomStation = worksheet.Cells[row, 3].Text.Trim(); // Colonne C
+                    string longitudeStr = worksheet.Cells[row, 4].Text.Replace(",", ".").Trim(); // Colonne D
+                    string latitudeStr = worksheet.Cells[row, 5].Text.Replace(",", ".").Trim();  // Colonne E
+                    string ligneMetro = worksheet.Cells[row, 2].Text.Trim(); // Colonne B
+
+                    if (!double.TryParse(latitudeStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double latitude) ||
+                        !double.TryParse(longitudeStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double longitude))
+                    {
+                        Console.WriteLine($"⚠️ Données invalides pour la station '{nomStation}' (ligne {row}) – ignorée.");
+                        continue;
+                    }
+
+                    var station = new Station(nomStation, latitude, longitude, ligneMetro);
+                    var noeud = new Noeud<Station>(id++, station);
+
+                    graphe.AjouterNoeud(noeud);
+
+                    if (!lignesStations.ContainsKey(ligneMetro))
+                        lignesStations[ligneMetro] = new List<Noeud<Station>>();
+
+                    lignesStations[ligneMetro].Add(noeud);
+                }
+
+                foreach (var ligne in lignesStations.Values)
+                {
+                    for (int i = 0; i < ligne.Count - 1; i++)
+                    {
+                        var source = ligne[i];
+                        var destination = ligne[i + 1];
+                        double distance = CalculDistance.CalculerDistance(source.Valeur, destination.Valeur);
+                        graphe.AjouterLien(source, destination, distance, bidirectionnel: true);
+                    }
+                }
+            }
+        }
+    }
+}
