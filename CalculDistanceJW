@@ -1,0 +1,33 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace _30mars
+{
+    public static class CalculDistance
+    {
+        // Fonction pour calculer la distance en kilomètres entre deux stations
+        public static double CalculerDistance(Station station1, Station station2)
+        {
+            double R = 6371; // Rayon de la Terre en kilomètres
+            double lat1 = station1.Latitude * Math.PI / 180.0;
+            double lon1 = station1.Longitude * Math.PI / 180.0;
+            double lat2 = station2.Latitude * Math.PI / 180.0;
+            double lon2 = station2.Longitude * Math.PI / 180.0;
+
+            double dLat = lat2 - lat1;
+            double dLon = lon2 - lon1;
+
+            double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                       Math.Cos(lat1) * Math.Cos(lat2) *
+                       Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+
+            double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+
+            return R * c; // Distance en kilomètres
+        }
+    }
+
+}
