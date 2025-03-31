@@ -1,0 +1,23 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace _30mars
+{
+    public class Noeud<T>
+    {
+        public int Id { get; set; }
+        public T Valeur { get; set; }
+        public List<Noeud<T>> Voisins { get; set; } = new List<Noeud<T>>();
+        public Dictionary<Noeud<T>, double> Poids { get; set; } = new Dictionary<Noeud<T>, double>(); // Pour stocker le poids des liens
+
+        public Noeud(int id, T valeur)
+        {
+            Id = id;
+            Valeur = valeur;
+        }
+    }
+
+}
