@@ -1,0 +1,21 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace _30mars
+{
+    public class Lien
+    {
+        public Noeud<int> Source { get; }
+        public Noeud<int> Destination { get; }
+
+        public Lien(Noeud<int> source, Noeud<int> destination)
+        {
+            Source = source;
+            Destination = destination;
+        }
+    }
+
+}
