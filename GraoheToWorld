@@ -1,0 +1,60 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
+
+namespace _30mars
+{
+    public static class GrapheVisualizer
+    {
+        public static void GenererImageGraphe(Graphe<Station> graphe, string cheminImage)
+        {
+            int largeur = 1500;
+            int hauteur = 1000;
+
+            Random rand = new Random(42);
+            Dictionary<Noeud<Station>, PointF> positions = new();
+
+            using (Bitmap bmp = new Bitmap(largeur, hauteur))
+            using (Graphics g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.Clear(Color.White);
+
+                // Générer positions aléatoires pour les stations
+                foreach (var noeud in graphe.Noeuds)
+                {
+                    float x = rand.Next(100, largeur - 150);
+                    float y = rand.Next(100, hauteur - 100);
+                    positions[noeud] = new PointF(x, y);
+                }
+
+                Pen lienPen = new Pen(Color.Gray, 1.5f);
+                Brush stationBrush = Brushes.SteelBlue;
+                Font font = new Font("Arial", 8);
+
+                // Tracer les arêtes
+                foreach (var noeud in graphe.Noeuds)
+                {
+                    PointF p1 = positions[noeud];
+
+                    foreach (var voisin in noeud.Voisins)
+                    {
+                        PointF p2 = positions[voisin];
+                        g.DrawLine(lienPen, p1, p2);
+                    }
+                }
+
+                // Tracer les stations
+                foreach (var noeud in graphe.Noeuds)
+                {
+                    PointF pos = positions[noeud];
+                    g.FillEllipse(stationBrush, pos.X - 5, pos.Y - 5, 10, 10);
+                    g.DrawString(noeud.Valeur.Nom, font, Brushes.Black, pos.X + 6, pos.Y + 6);
+                }
+
+                bmp.Save(cheminImage, ImageFormat.Png);
+            }
+        }
+    }
+}
