@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic; // Required for List
 using MySql.Data.MySqlClient;
 
 class Program
@@ -7,183 +6,741 @@ class Program
     static void Main()
     {
         string connectionString = "server=localhost;database=LivinParis;user=root;password=Eg.19052005;";
-        MySqlConnection connection = new MySqlConnection(connectionString);
 
-        // Initialize platsExistants
-        List<string> platsExistants = new List<string>
+        using (MySqlConnection connection = new MySqlConnection(connectionString))
         {
-            "Boeuf Bourguignon - 15.50€",
-            "Coq au Vin - 14.00€",
-            "Ratatouille - 11.00€",
-            "Quiche Lorraine - 8.50€",
-            "Soupe à l'Oignon - 6.50€",
-            "Cassoulet - 13.00€"
-        };
+            try
+            {
+                connection.Open();
+                static void InitializePlats(MySqlConnection connection)
+                {
+                    string checkSql = "SELECT COUNT(*) FROM Plats WHERE id BETWEEN 1 AND 10";
+                    using (MySqlCommand cmd = new MySqlCommand(checkSql, connection))
+                    {
+                        if (Convert.ToInt32(cmd.ExecuteScalar()) == 0)
+                        {
+                            // Ajouter les plats français de base
+                            string insertSql = @"INSERT INTO Plats 
+                              (id, cuisinier_id, nom, description, type, prix, disponible)
+                              VALUES 
+                              (1, 'CU001', 'Boeuf Bourguignon', 'Ragoût de bœuf mijoté au vin rouge', 'plat_principal', 15.50, TRUE),
+                              (2, 'CU001', 'Coq au Vin', 'Poulet mijoté au vin rouge', 'plat_principal', 14.00, TRUE),
+                              (3, 'CU001', 'Ratatouille', 'Légumes provençaux mijotés', 'plat_principal', 11.00, TRUE),
+                              (4, 'CU001', 'Quiche Lorraine', 'Tarte salée aux lardons et fromage', 'entree', 8.50, TRUE),
+                              (5, 'CU001', 'Soupe à l\'Oignon', 'Soupe aux oignons gratinée', 'entree', 6.50, TRUE),
+                              (6, 'CU001', 'Cassoulet', 'Ragoût de haricots blancs et viandes', 'plat_principal', 13.00, TRUE),
+                              (7, 'CU001', 'Croque-Monsieur', 'Sandwich grillé au jambon et fromage', 'entree', 7.00, TRUE),
+                              (8, 'CU001', 'Tarte Tatin', 'Tarte renversée aux pommes caramélisées', 'dessert', 5.50, TRUE),
+                              (9, 'CU001', 'Salade Niçoise', 'Salade composée méditerranéenne', 'entree', 9.50, TRUE),
+                              (10, 'CU001', 'Blanquette de Veau', 'Ragoût de veau à la sauce crémée', 'plat_principal', 16.00, TRUE)";
 
-        try
+                            using (MySqlCommand insertCmd = new MySqlCommand(insertSql, connection))
+                            {
+                                insertCmd.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                }
+                Console.WriteLine(" Connexion réussie à MySQL !");
+
+                // Vérification que les tables existent
+                EnsureDatabaseStructure(connection);
+
+                Console.Write("Entrez votre identifiant (ex: CL001 ou CU001) : ");
+                string userId = Console.ReadLine().ToUpper();
+
+                string userType = userId.StartsWith("CL") ? "client" :
+                                userId.StartsWith("CU") ? "cuisinier" : "";
+
+                if (string.IsNullOrEmpty(userType))
+                {
+                    Console.WriteLine(" Identifiant invalide. Il doit commencer par CL ou CU.");
+                    return;
+                }
+
+                // Vérifier ou créer l'utilisateur
+                if (!UserExists(connection, userId))
+                {
+                    CreateNewUser(connection, userId, userType);
+                }
+                else
+                {
+                    Console.WriteLine($" Bienvenue {userId} !");
+                }
+
+                // Menu selon le type d'utilisateur
+                if (userType == "client")
+                {
+                    ClientMenu(connection, userId);
+                }
+                else
+                {
+                    CuisinierMenu(connection, userId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($" Erreur : {ex.Message}");
+            }
+        }
+    }
+
+    static void EnsureDatabaseStructure(MySqlConnection connection)
+    {
+        string checkTableSql = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'LivinParis' AND table_name = 'Utilisateurs'";
+        using (MySqlCommand cmd = new MySqlCommand(checkTableSql, connection))
         {
-            connection.Open();
-            Console.WriteLine("✅ Connexion réussie à MySQL !");
+            if (Convert.ToInt32(cmd.ExecuteScalar()) == 0)
+            {
+                Console.WriteLine(" Les tables n'existent pas. Exécutez d'abord le script SQL fourni.");
+                Environment.Exit(1);
+            }
+        }
+    }
 
-            Console.Write("Entrez votre identifiant (ex: CL001 ou CU001) : ");
-            string userId = Console.ReadLine();
+    static bool UserExists(MySqlConnection connection, string userId)
+    {
+        string sql = "SELECT COUNT(*) FROM Utilisateurs WHERE id = @id";
+        using (MySqlCommand cmd = new MySqlCommand(sql, connection))
+        {
+            cmd.Parameters.AddWithValue("@id", userId);
+            return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+        }
+    }
 
-            string userType = "";
-            if (userId.StartsWith("CL")) userType = "client";
-            else if (userId.StartsWith("CU")) userType = "cuisinier";
+    static void CreateNewUser(MySqlConnection connection, string userId, string userType)
+    {
+        Console.Write("Nom : ");
+        string nom = Console.ReadLine();
+        Console.Write("Prénom : ");
+        string prenom = Console.ReadLine();
+        Console.Write("Adresse : ");
+        string adresse = Console.ReadLine();
+        Console.Write("Téléphone : ");
+        string telephone = Console.ReadLine();
+        Console.Write("Email : ");
+        string email = Console.ReadLine();
+        Console.Write("Mot de passe : ");
+        string motDePasse = Console.ReadLine();
+
+        // Ajout dans Utilisateurs
+        string sqlUser = @"INSERT INTO Utilisateurs 
+                         (id, nom, prenom, adresse, telephone, email, mot_de_passe, type_utilisateur) 
+                         VALUES (@id, @nom, @prenom, @adresse, @telephone, @email, @motDePasse, @type)";
+
+        using (MySqlCommand cmd = new MySqlCommand(sqlUser, connection))
+        {
+            cmd.Parameters.AddWithValue("@id", userId);
+            cmd.Parameters.AddWithValue("@nom", nom);
+            cmd.Parameters.AddWithValue("@prenom", prenom);
+            cmd.Parameters.AddWithValue("@adresse", adresse);
+            cmd.Parameters.AddWithValue("@telephone", telephone);
+            cmd.Parameters.AddWithValue("@email", email);
+            cmd.Parameters.AddWithValue("@motDePasse", motDePasse);
+            cmd.Parameters.AddWithValue("@type", userType);
+            cmd.ExecuteNonQuery();
+        }
+
+        // Ajout dans la table spécifique (Client ou Cuisinier)
+        string specificTable = userType == "client" ? "Clients" : "Cuisiniers";
+        string sqlSpecific = $"INSERT INTO {specificTable} (id_utilisateur) VALUES (@id)";
+
+        using (MySqlCommand cmd = new MySqlCommand(sqlSpecific, connection))
+        {
+            cmd.Parameters.AddWithValue("@id", userId);
+            cmd.ExecuteNonQuery();
+        }
+
+        Console.WriteLine($" Utilisateur {nom} {prenom} ajouté avec succès !");
+    }
+
+    static void ClientMenu(MySqlConnection connection, string clientId)
+    {
+        while (true)
+        {
+            Console.WriteLine("\nMENU CLIENT");
+            Console.WriteLine("1️. Voir la liste des plats disponibles");
+            Console.WriteLine("2️. Passer une commande");
+            Console.WriteLine("3️. Voir mes commandes passées");
+            Console.WriteLine("4️. Quitter");
+            Console.Write("Votre choix : ");
+            string choix = Console.ReadLine();
+
+            if (choix == "1")
+            {
+                ShowAvailablePlats(connection);
+            }
+            else if (choix == "2")
+            {
+                CreateOrder(connection, clientId);
+            }
+            else if (choix == "3")
+            {
+                ShowClientOrders(connection, clientId);
+            }
+            else if (choix == "4")
+            {
+                break;
+            }
             else
             {
-                Console.WriteLine("❌ Identifiant invalide. Il doit commencer par CL ou CU.");
+                Console.WriteLine("Option invalide, veuillez réessayer.");
+            }
+        }
+    }
+
+    static void ShowAvailablePlats(MySqlConnection connection)
+    {
+        // Liste prédéfinie de plats français
+        var platsFrancais = new[]
+        {
+        new { Id = 1, Nom = "Boeuf Bourguignon", Type = "plat_principal", Prix = 15.50m, Description = "Ragoût de bœuf mijoté au vin rouge" },
+        new { Id = 2, Nom = "Coq au Vin", Type = "plat_principal", Prix = 14.00m, Description = "Poulet mijoté au vin rouge" },
+        new { Id = 3, Nom = "Ratatouille", Type = "plat_principal", Prix = 11.00m, Description = "Légumes provençaux mijotés" },
+        new { Id = 4, Nom = "Quiche Lorraine", Type = "entree", Prix = 8.50m, Description = "Tarte salée aux lardons et fromage" },
+        new { Id = 5, Nom = "Soupe à l'Oignon", Type = "entree", Prix = 6.50m, Description = "Soupe aux oignons gratinée" },
+        new { Id = 6, Nom = "Cassoulet", Type = "plat_principal", Prix = 13.00m, Description = "Ragoût de haricots blancs et viandes" },
+        new { Id = 7, Nom = "Croque-Monsieur", Type = "entree", Prix = 7.00m, Description = "Sandwich grillé au jambon et fromage" },
+        new { Id = 8, Nom = "Tarte Tatin", Type = "dessert", Prix = 5.50m, Description = "Tarte renversée aux pommes caramélisées" },
+        new { Id = 9, Nom = "Salade Niçoise", Type = "entree", Prix = 9.50m, Description = "Salade composée méditerranéenne" },
+        new { Id = 10, Nom = "Blanquette de Veau", Type = "plat_principal", Prix = 16.00m, Description = "Ragoût de veau à la sauce crémée" }
+    };
+
+        Console.WriteLine("\nLISTE DES PLATS DISPONIBLES");
+        Console.WriteLine("--------------------------");
+
+        // Grouper par type de plat
+        var platsParType = platsFrancais.GroupBy(p => p.Type);
+
+        foreach (var groupe in platsParType)
+        {
+            string typeAffichage = groupe.Key switch
+            {
+                "entree" => "ENTRÉES",
+                "plat_principal" => "PLATS PRINCIPAUX",
+                "dessert" => "DESSERTS",
+                _ => "AUTRES"
+            };
+
+            Console.WriteLine($"\n{typeAffichage}:");
+            Console.WriteLine("--------------------------");
+
+            foreach (var plat in groupe)
+            {
+                Console.WriteLine($"\nID: {plat.Id}");
+                Console.WriteLine($"Plat: {plat.Nom} - {plat.Prix}€");
+                Console.WriteLine($"Description: {plat.Description}");
+                Console.WriteLine("--------------------------");
+            }
+        }
+    }
+
+    static void CreateOrder(MySqlConnection connection, string clientId)
+    {
+        // Afficher les plats disponibles
+        ShowAvailablePlats(connection);
+
+        // Liste prédéfinie de plats (doit correspondre à celle de ShowAvailablePlats)
+        var platsFrancais = new Dictionary<int, (string Nom, decimal Prix)>
+    {
+        { 1, ("Boeuf Bourguignon", 15.50m) },
+        { 2, ("Coq au Vin", 14.00m) },
+        { 3, ("Ratatouille", 11.00m) },
+        { 4, ("Quiche Lorraine", 8.50m) },
+        { 5, ("Soupe à l'Oignon", 6.50m) },
+        { 6, ("Cassoulet", 13.00m) },
+        { 7, ("Croque-Monsieur", 7.00m) },
+        { 8, ("Tarte Tatin", 5.50m) },
+        { 9, ("Salade Niçoise", 9.50m) },
+        { 10, ("Blanquette de Veau", 16.00m) }
+    };
+
+        Console.Write("\nEntrez les ID des plats que vous souhaitez commander (séparés par des virgules) : ");
+        string[] platIds = Console.ReadLine().Split(',');
+
+    
+
+    // Liste pour stocker les plats commandés
+    System.Collections.Generic.List<(int id, int quantite)> platsCommandes = new System.Collections.Generic.List<(int, int)>();
+
+        foreach (string platIdStr in platIds)
+        {
+            if (int.TryParse(platIdStr.Trim(), out int platId))
+            {
+                Console.Write($"Quantité pour le plat ID {platId} : ");
+                if (int.TryParse(Console.ReadLine(), out int quantite) && quantite > 0)
+                {
+                    platsCommandes.Add((platId, quantite));
+                }
+                else
+                {
+                    Console.WriteLine($"Quantité invalide pour le plat ID {platId}, ignoré.");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"ID invalide: {platIdStr}, ignoré.");
+            }
+        }
+
+        if (platsCommandes.Count == 0)
+        {
+            Console.WriteLine("Aucun plat valide sélectionné. Commande annulée.");
+            return;
+        }
+
+        // Vérifier la disponibilité des plats et calculer le total
+        decimal total = 0;
+        string cuisinierId = null;
+        System.Collections.Generic.List<(int id, string nom, int quantite, decimal prix)> platsValides =
+            new System.Collections.Generic.List<(int, string, int, decimal)>();
+
+        foreach (var (id, quantite) in platsCommandes)
+        {
+            string sqlPlat = @"SELECT p.nom, p.prix, p.cuisinier_id 
+                             FROM Plats p 
+                             WHERE p.id = @platId AND p.disponible = TRUE";
+
+            using (MySqlCommand cmd = new MySqlCommand(sqlPlat, connection))
+            {
+                cmd.Parameters.AddWithValue("@platId", id);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        string nomPlat = reader["nom"].ToString();
+                        decimal prix = Convert.ToDecimal(reader["prix"]);
+                        string platCuisinierId = reader["cuisinier_id"].ToString();
+
+                        // Pour la première itération, on stocke le cuisinier_id
+                        if (cuisinierId == null)
+                        {
+                            cuisinierId = platCuisinierId;
+                        }
+                        // Vérifier que tous les plats viennent du même cuisinier
+                        else if (cuisinierId != platCuisinierId)
+                        {
+                            Console.WriteLine($"Erreur: Le plat {nomPlat} vient d'un autre cuisinier. " +
+                                            "Vous ne pouvez commander qu'à un seul cuisinier à la fois.");
+                            reader.Close();
+                            return;
+                        }
+
+                        platsValides.Add((id, nomPlat, quantite, prix));
+                        total += prix * quantite;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Le plat ID {id} n'est pas disponible ou n'existe pas.");
+                    }
+                }
+            }
+        }
+
+        if (platsValides.Count == 0)
+        {
+            Console.WriteLine("Aucun plat disponible sélectionné. Commande annulée.");
+            return;
+        }
+
+        // Afficher le récapitulatif de la commande
+        Console.WriteLine("\nRÉCAPITULATIF DE LA COMMANDE");
+        Console.WriteLine("----------------------------");
+        foreach (var (id, nom, quantite, prix) in platsValides)
+        {
+            Console.WriteLine($"- {nom} (x{quantite}): {prix * quantite}€");
+        }
+        Console.WriteLine($"TOTAL: {total}€");
+
+        Console.Write("\nConfirmer la commande (O/N) ? ");
+        if (Console.ReadLine().ToUpper() != "O")
+        {
+            Console.WriteLine("Commande annulée.");
+            return;
+        }
+
+        // Créer la commande
+        string sqlCommande = @"INSERT INTO Commandes (client_id, cuisinier_id, total, date_commande) 
+                             VALUES (@clientId, @cuisinierId, @total, NOW()); 
+                             SELECT LAST_INSERT_ID();";
+
+        int commandeId;
+        using (MySqlCommand cmdCommande = new MySqlCommand(sqlCommande, connection))
+        {
+            cmdCommande.Parameters.AddWithValue("@clientId", clientId);
+            cmdCommande.Parameters.AddWithValue("@cuisinierId", cuisinierId);
+            cmdCommande.Parameters.AddWithValue("@total", total);
+            commandeId = Convert.ToInt32(cmdCommande.ExecuteScalar());
+        }
+
+        // Ajouter les plats à la commande
+        foreach (var (id, nom, quantite, prix) in platsValides)
+        {
+            string sqlPlatCommande = @"INSERT INTO PlatsCommandes 
+                                      (commande_id, plat_id, quantite, prix_unitaire) 
+                                      VALUES (@commandeId, @platId, @quantite, @prix)";
+
+            using (MySqlCommand cmdPlat = new MySqlCommand(sqlPlatCommande, connection))
+            {
+                cmdPlat.Parameters.AddWithValue("@commandeId", commandeId);
+                cmdPlat.Parameters.AddWithValue("@platId", id);
+                cmdPlat.Parameters.AddWithValue("@quantite", quantite);
+                cmdPlat.Parameters.AddWithValue("@prix", prix);
+                cmdPlat.ExecuteNonQuery();
+            }
+        }
+
+        Console.WriteLine($"\n✅ Commande #{commandeId} enregistrée avec succès !");
+    }
+
+    static void ShowClientOrders(MySqlConnection connection, string clientId)
+    {
+        string sql = @"SELECT c.id, c.date_commande, c.total, 
+                      u.nom AS cuisinier_nom, u.prenom AS cuisinier_prenom 
+                      FROM Commandes c 
+                      JOIN Utilisateurs u ON c.cuisinier_id = u.id 
+                      WHERE c.client_id = @clientId 
+                      ORDER BY c.date_commande DESC";
+
+        Console.WriteLine("\nMES COMMANDES");
+        Console.WriteLine("------------");
+
+        using (MySqlCommand cmd = new MySqlCommand(sql, connection))
+        {
+            cmd.Parameters.AddWithValue("@clientId", clientId);
+            using (var reader = cmd.ExecuteReader())
+            {
+                if (!reader.HasRows)
+                {
+                    Console.WriteLine("Vous n'avez passé aucune commande.");
+                    return;
+                }
+
+                while (reader.Read())
+                {
+                    Console.WriteLine($"\nCommande #{reader["id"]} - {reader["date_commande"]}");
+                    Console.WriteLine($"Cuisinier: {reader["cuisinier_prenom"]} {reader["cuisinier_nom"]}");
+                    Console.WriteLine($"Total: {reader["total"]} €");
+
+                    // Afficher les détails des plats pour cette commande
+                    ShowOrderDetails(connection, Convert.ToInt32(reader["id"]));
+                }
+            }
+        }
+    }
+
+    static void ShowOrderDetails(MySqlConnection connection, int commandeId)
+    {
+        string sql = @"SELECT p.nom, pc.quantite, pc.prix_unitaire 
+                      FROM PlatsCommandes pc 
+                      JOIN Plats p ON pc.plat_id = p.id 
+                      WHERE pc.commande_id = @commandeId";
+
+        using (MySqlCommand cmd = new MySqlCommand(sql, connection))
+        {
+            cmd.Parameters.AddWithValue("@commandeId", commandeId);
+            using (var reader = cmd.ExecuteReader())
+            {
+                Console.WriteLine("Plats commandés:");
+                while (reader.Read())
+                {
+                    decimal prix = Convert.ToDecimal(reader["prix_unitaire"]);
+                    int quantite = Convert.ToInt32(reader["quantite"]);
+                    Console.WriteLine($"- {reader["nom"]} (x{quantite}): {prix * quantite}€");
+                }
+            }
+        }
+    }
+
+    static void CuisinierMenu(MySqlConnection connection, string cuisinierId)
+    {
+        while (true)
+        {
+            Console.WriteLine("\nMENU CUISINIER");
+            Console.WriteLine("1️. Ajouter un plat");
+            Console.WriteLine("2️. Voir mes plats");
+            Console.WriteLine("3️. Modifier un plat");
+            Console.WriteLine("4️. Voir mes commandes");
+            Console.WriteLine("5️. Quitter");
+            Console.Write("Votre choix : ");
+            string choix = Console.ReadLine();
+
+            if (choix == "1")
+            {
+                AddNewPlat(connection, cuisinierId);
+            }
+            else if (choix == "2")
+            {
+                ShowCuisinierPlats(connection, cuisinierId);
+            }
+            else if (choix == "3")
+            {
+                ModifyPlat(connection, cuisinierId);
+            }
+            else if (choix == "4")
+            {
+                ShowCuisinierOrders(connection, cuisinierId);
+            }
+            else if (choix == "5")
+            {
+                break;
+            }
+            else
+            {
+                Console.WriteLine("Option invalide, veuillez réessayer.");
+            }
+        }
+    }
+
+    static void AddNewPlat(MySqlConnection connection, string cuisinierId)
+    {
+        Console.WriteLine("\nAJOUTER UN NOUVEAU PLAT");
+        Console.WriteLine("----------------------");
+
+        Console.Write("Nom du plat : ");
+        string nom = Console.ReadLine();
+        Console.Write("Description : ");
+        string description = Console.ReadLine();
+        Console.Write("Type (entree/plat_principal/dessert) : ");
+        string type = Console.ReadLine();
+        Console.Write("Nombre de personnes : ");
+        int nbPersonnes = int.Parse(Console.ReadLine());
+        Console.Write("Prix : ");
+        decimal prix = decimal.Parse(Console.ReadLine());
+        Console.Write("Nationalité : ");
+        string nationalite = Console.ReadLine();
+        Console.Write("Régime alimentaire : ");
+        string regime = Console.ReadLine();
+        Console.Write("Ingrédients principaux : ");
+        string ingredients = Console.ReadLine();
+
+        string sql = @"INSERT INTO Plats 
+                      (cuisinier_id, nom, description, type, nb_personnes, 
+                       date_fabrication, date_peremption, prix, nationalite, regime, ingredients, disponible) 
+                      VALUES (@cuisinierId, @nom, @desc, @type, @nbPers, 
+                              @dateFab, @datePer, @prix, @nat, @regime, @ingr, TRUE)";
+
+        using (MySqlCommand cmd = new MySqlCommand(sql, connection))
+        {
+            cmd.Parameters.AddWithValue("@cuisinierId", cuisinierId);
+            cmd.Parameters.AddWithValue("@nom", nom);
+            cmd.Parameters.AddWithValue("@desc", description);
+            cmd.Parameters.AddWithValue("@type", type);
+            cmd.Parameters.AddWithValue("@nbPers", nbPersonnes);
+            cmd.Parameters.AddWithValue("@dateFab", DateTime.Today);
+            cmd.Parameters.AddWithValue("@datePer", DateTime.Today.AddDays(3));
+            cmd.Parameters.AddWithValue("@prix", prix);
+            cmd.Parameters.AddWithValue("@nat", nationalite);
+            cmd.Parameters.AddWithValue("@regime", regime);
+            cmd.Parameters.AddWithValue("@ingr", ingredients);
+            cmd.ExecuteNonQuery();
+        }
+
+        Console.WriteLine("\n✅ Plat ajouté avec succès !");
+    }
+
+    static void ShowCuisinierPlats(MySqlConnection connection, string cuisinierId)
+    {
+        string sql = @"SELECT id, nom, description, type, prix, disponible 
+                      FROM Plats 
+                      WHERE cuisinier_id = @cuisinierId
+                      ORDER BY type, nom";
+
+        Console.WriteLine("\nMES PLATS");
+        Console.WriteLine("---------");
+
+        using (MySqlCommand cmd = new MySqlCommand(sql, connection))
+        {
+            cmd.Parameters.AddWithValue("@cuisinierId", cuisinierId);
+            using (var reader = cmd.ExecuteReader())
+            {
+                if (!reader.HasRows)
+                {
+                    Console.WriteLine("Vous n'avez aucun plat enregistré.");
+                    return;
+                }
+
+                string currentType = "";
+                while (reader.Read())
+                {
+                    if (reader["type"].ToString() != currentType)
+                    {
+                        currentType = reader["type"].ToString();
+                        Console.WriteLine($"\n{currentType.ToUpper()}:");
+                    }
+
+                    Console.WriteLine($"\nID: {reader["id"]}");
+                    Console.WriteLine($"Nom: {reader["nom"]}");
+                    Console.WriteLine($"Description: {reader["description"]}");
+                    Console.WriteLine($"Prix: {reader["prix"]}€");
+                    Console.WriteLine($"Statut: {(Convert.ToBoolean(reader["disponible"]) ? "Disponible" : "Indisponible")}");
+                    Console.WriteLine("---------");
+                }
+            }
+        }
+    }
+
+    static void ModifyPlat(MySqlConnection connection, string cuisinierId)
+    {
+        // Afficher les plats du cuisinier
+        ShowCuisinierPlats(connection, cuisinierId);
+
+        Console.Write("\nEntrez l'ID du plat à modifier : ");
+        if (!int.TryParse(Console.ReadLine(), out int platId))
+        {
+            Console.WriteLine("ID invalide.");
+            return;
+        }
+
+        // Vérifier que le plat appartient bien au cuisinier
+        string checkSql = "SELECT COUNT(*) FROM Plats WHERE id = @platId AND cuisinier_id = @cuisinierId";
+        using (MySqlCommand checkCmd = new MySqlCommand(checkSql, connection))
+        {
+            checkCmd.Parameters.AddWithValue("@platId", platId);
+            checkCmd.Parameters.AddWithValue("@cuisinierId", cuisinierId);
+            if (Convert.ToInt32(checkCmd.ExecuteScalar()) == 0)
+            {
+                Console.WriteLine("Ce plat ne vous appartient pas ou n'existe pas.");
                 return;
             }
+        }
 
-            MySqlCommand checkUserCmd = new MySqlCommand($"SELECT * FROM Utilisateurs WHERE id = @id", connection);
-            checkUserCmd.Parameters.AddWithValue("@id", userId);
-            var reader = checkUserCmd.ExecuteReader();
+        // Demander les modifications
+        Console.WriteLine("\nLaissez vide pour ne pas modifier un champ.");
+        Console.Write("Nouveau nom : ");
+        string nom = Console.ReadLine();
+        Console.Write("Nouvelle description : ");
+        string description = Console.ReadLine();
+        Console.Write("Nouveau type (entree/plat_principal/dessert) : ");
+        string type = Console.ReadLine();
+        Console.Write("Nouveau nombre de personnes : ");
+        string nbPersStr = Console.ReadLine();
+        Console.Write("Nouveau prix : ");
+        string prixStr = Console.ReadLine();
+        Console.Write("Nouvelle nationalité : ");
+        string nationalite = Console.ReadLine();
+        Console.Write("Nouveau régime alimentaire : ");
+        string regime = Console.ReadLine();
+        Console.Write("Nouveaux ingrédients principaux : ");
+        string ingredients = Console.ReadLine();
+        Console.Write("Disponible (O/N) : ");
+        string disponibleStr = Console.ReadLine();
 
-            if (!reader.HasRows)
+        // Construire la requête SQL dynamiquement
+        string sql = "UPDATE Plats SET ";
+        var parameters = new System.Collections.Generic.List<MySqlParameter>();
+
+        if (!string.IsNullOrEmpty(nom))
+        {
+            sql += "nom = @nom, ";
+            parameters.Add(new MySqlParameter("@nom", nom));
+        }
+        if (!string.IsNullOrEmpty(description))
+        {
+            sql += "description = @desc, ";
+            parameters.Add(new MySqlParameter("@desc", description));
+        }
+        if (!string.IsNullOrEmpty(type))
+        {
+            sql += "type = @type, ";
+            parameters.Add(new MySqlParameter("@type", type));
+        }
+        if (!string.IsNullOrEmpty(nbPersStr) && int.TryParse(nbPersStr, out int nbPers))
+        {
+            sql += "nb_personnes = @nbPers, ";
+            parameters.Add(new MySqlParameter("@nbPers", nbPers));
+        }
+        if (!string.IsNullOrEmpty(prixStr) && decimal.TryParse(prixStr, out decimal prix))
+        {
+            sql += "prix = @prix, ";
+            parameters.Add(new MySqlParameter("@prix", prix));
+        }
+        if (!string.IsNullOrEmpty(nationalite))
+        {
+            sql += "nationalite = @nat, ";
+            parameters.Add(new MySqlParameter("@nat", nationalite));
+        }
+        if (!string.IsNullOrEmpty(regime))
+        {
+            sql += "regime = @regime, ";
+            parameters.Add(new MySqlParameter("@regime", regime));
+        }
+        if (!string.IsNullOrEmpty(ingredients))
+        {
+            sql += "ingredients = @ingr, ";
+            parameters.Add(new MySqlParameter("@ingr", ingredients));
+        }
+        if (!string.IsNullOrEmpty(disponibleStr))
+        {
+            sql += "disponible = @dispo, ";
+            parameters.Add(new MySqlParameter("@dispo", disponibleStr.ToUpper() == "O"));
+        }
+
+        // Supprimer la dernière virgule et espace
+        sql = sql.TrimEnd(',', ' ');
+
+        sql += " WHERE id = @platId";
+
+        using (MySqlCommand cmd = new MySqlCommand(sql, connection))
+        {
+            cmd.Parameters.AddRange(parameters.ToArray());
+            cmd.Parameters.AddWithValue("@platId", platId);
+
+            int rowsAffected = cmd.ExecuteNonQuery();
+            if (rowsAffected > 0)
             {
-                reader.Close();
-                Console.Write("Nom : ");
-                string nom = Console.ReadLine();
-                Console.Write("Prénom : ");
-                string prenom = Console.ReadLine();
-                Console.Write("Adresse : ");
-                string adresse = Console.ReadLine();
-                Console.Write("Téléphone : ");
-                string telephone = Console.ReadLine();
-                Console.Write("Email : ");
-                string email = Console.ReadLine();
-                Console.Write("Mot de passe : ");
-                string motDePasse = Console.ReadLine();
-
-                MySqlCommand addUserCmd = new MySqlCommand(
-                    "INSERT INTO Utilisateurs (id, nom, prenom, adresse, telephone, email, mot_de_passe, type_utilisateur) " +
-                    "VALUES (@id, @nom, @prenom, @adresse, @telephone, @email, @motDePasse, @typeUtilisateur)", connection);
-                addUserCmd.Parameters.AddWithValue("@id", userId);
-                addUserCmd.Parameters.AddWithValue("@nom", nom);
-                addUserCmd.Parameters.AddWithValue("@prenom", prenom);
-                addUserCmd.Parameters.AddWithValue("@adresse", adresse);
-                addUserCmd.Parameters.AddWithValue("@telephone", telephone);
-                addUserCmd.Parameters.AddWithValue("@email", email);
-                addUserCmd.Parameters.AddWithValue("@motDePasse", motDePasse);
-                addUserCmd.Parameters.AddWithValue("@typeUtilisateur", userType);
-                addUserCmd.ExecuteNonQuery();
-
-                Console.WriteLine($"✅ Utilisateur {nom} {prenom} ajouté avec succès !");
+                Console.WriteLine("\n Plat modifié avec succès !");
             }
             else
             {
-                reader.Close();
-                Console.WriteLine($"🔹 Bienvenue {userId} !");
-            }
-
-            if (userType == "client")
-            {
-                Console.WriteLine("1️⃣ Voir la liste des plats");
-                Console.WriteLine("2️⃣ Passer une commande");
-                Console.WriteLine("3️⃣ Quitter");
-                Console.Write("Votre choix : ");
-                string choix = Console.ReadLine();
-
-                if (choix == "1")
-                {
-                    Console.WriteLine("\n🍽️ Liste des plats disponibles :");
-                    for (int i = 0; i < platsExistants.Count; i++)
-                    {
-                        Console.WriteLine($"➡️ ID: {i + 1}, Plat: {platsExistants[i]}");
-                    }
-                }
-                else if (choix == "2")
-                {
-                    Console.Write("Entrez l'ID du plat que vous voulez commander : ");
-                    int platId = int.Parse(Console.ReadLine()) - 1;
-
-                    if (platId < 0 || platId >= platsExistants.Count)
-                    {
-                        Console.WriteLine("❌ ID de plat invalide.");
-                        return;
-                    }
-
-                    Console.Write("Quantité : ");
-                    int quantite = int.Parse(Console.ReadLine());
-
-                    string[] platDetails = platsExistants[platId].Split(" - ");
-                    string nomPlat = platDetails[0];
-                    decimal prix = decimal.Parse(platDetails[1].Replace("€", ""));
-
-                    decimal total = prix * quantite;
-                    Console.WriteLine($"\n📝 Récapitulatif de la commande :");
-                    Console.WriteLine($"- Plat : {nomPlat}");
-                    Console.WriteLine($"- Quantité : {quantite}");
-                    Console.WriteLine($"- Total : {total} €");
-                    Console.WriteLine($"- Temps de livraison estimé : 30 minutes");
-
-                    MySqlCommand addCommandeCmd = new MySqlCommand(
-                        "INSERT INTO Commandes (client_id, total) VALUES (@clientId, @total)", connection);
-                    addCommandeCmd.Parameters.AddWithValue("@clientId", userId);
-                    addCommandeCmd.Parameters.AddWithValue("@total", total);
-                    addCommandeCmd.ExecuteNonQuery();
-                    Console.WriteLine($"✅ Commande enregistrée avec succès !");
-                }
-            }
-
-            if (userType == "cuisinier")
-            {
-                Console.WriteLine("1️⃣ Ajouter un plat");
-                Console.WriteLine("2️⃣ Consulter une commande");
-                Console.Write("Votre choix : ");
-                string choix = Console.ReadLine();
-
-                if (choix == "1")
-                {
-                    Console.Write("Nom du plat : ");
-                    string nomPlat = Console.ReadLine();
-                    Console.Write("Prix : ");
-                    decimal prix = decimal.Parse(Console.ReadLine());
-
-                    platsExistants.Add($"{nomPlat} - {prix}€");
-                    Console.WriteLine($"✅ Plat ajouté : {nomPlat} - {prix}€");
-                }
-                else if (choix == "2")
-                {
-                    Console.Write("Nom du client : ");
-                    string nomClient = Console.ReadLine();
-                    Console.Write("Prénom du client : ");
-                    string prenomClient = Console.ReadLine();
-
-                    Random rand = new Random();
-                    int randomPlatId = rand.Next(platsExistants.Count);
-                    int quantite = rand.Next(1, 4);
-
-                    string[] platDetails = platsExistants[randomPlatId].Split(" - ");
-                    string nomPlat = platDetails[0];
-                    decimal prix = decimal.Parse(platDetails[1].Replace("€", ""));
-                    decimal total = prix * quantite;
-
-                    Console.WriteLine($"\n📦 Commande de {nomClient} {prenomClient} :");
-                    Console.WriteLine($"- Plat : {nomPlat}");
-                    Console.WriteLine($"- Quantité : {quantite}");
-                    Console.WriteLine($"- Total : {total} €");
-                }
+                Console.WriteLine("Aucune modification effectuée.");
             }
         }
-        catch (Exception ex)
+    }
+
+    static void ShowCuisinierOrders(MySqlConnection connection, string cuisinierId)
+    {
+        string sql = @"SELECT c.id, c.date_commande, c.total, 
+                      u.nom AS client_nom, u.prenom AS client_prenom, 
+                      u.adresse, u.telephone
+                      FROM Commandes c 
+                      JOIN Utilisateurs u ON c.client_id = u.id 
+                      WHERE c.cuisinier_id = @cuisinierId 
+                      ORDER BY c.date_commande DESC";
+
+        Console.WriteLine("\nMES COMMANDES");
+        Console.WriteLine("------------");
+
+        using (MySqlCommand cmd = new MySqlCommand(sql, connection))
         {
-            Console.WriteLine($"❌ Erreur : {ex.Message}");
-        }
-        finally
-        {
-            connection.Close();
+            cmd.Parameters.AddWithValue("@cuisinierId", cuisinierId);
+            using (var reader = cmd.ExecuteReader())
+            {
+                if (!reader.HasRows)
+                {
+                    Console.WriteLine("Vous n'avez aucune commande.");
+                    return;
+                }
+
+                while (reader.Read())
+                {
+                    Console.WriteLine($"\nCommande #{reader["id"]} - {reader["date_commande"]}");
+                    Console.WriteLine($"Client: {reader["client_prenom"]} {reader["client_nom"]}");
+                    Console.WriteLine($"Adresse: {reader["adresse"]}");
+                    Console.WriteLine($"Téléphone: {reader["telephone"]}");
+                    Console.WriteLine($"Total: {reader["total"]} €");
+
+                    // Afficher les détails des plats pour cette commande
+                    ShowOrderDetails(connection, Convert.ToInt32(reader["id"]));
+                }
+            }
         }
     }
 }
 
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
--- Dans MySQL Workbench ou ligne de commande
+-- Création de la base de données
 DROP DATABASE IF EXISTS LivinParis;
 CREATE DATABASE LivinParis;
 USE LivinParis;
@@ -258,3 +815,34 @@ CREATE TABLE IF NOT EXISTS PlatsCommandes (
     FOREIGN KEY (commande_id) REFERENCES Commandes(id) ON DELETE CASCADE,
     FOREIGN KEY (plat_id) REFERENCES Plats(id)
 ) ENGINE=InnoDB;
+
+-- Insertion du cuisinier par défaut
+INSERT INTO Utilisateurs 
+(id, nom, prenom, adresse, telephone, email, mot_de_passe, type_utilisateur)
+VALUES 
+('CU001', 'Chef', 'Français', '1 Rue de la Cuisine, Paris', '0102030405', 'chef@livinparis.fr', SHA2('password123', 256), 'cuisinier');
+
+INSERT INTO Cuisiniers (id_utilisateur) VALUES ('CU001');
+
+-- Insertion des plats français de base
+INSERT INTO Plats 
+(id, cuisinier_id, nom, description, type, nb_personnes, date_fabrication, date_peremption, prix, disponible)
+VALUES 
+(1, 'CU001', 'Boeuf Bourguignon', 'Ragoût de bœuf mijoté au vin rouge', 'plat_principal', 4, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 3 DAY), 15.50, TRUE),
+(2, 'CU001', 'Coq au Vin', 'Poulet mijoté au vin rouge', 'plat_principal', 4, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 3 DAY), 14.00, TRUE),
+(3, 'CU001', 'Ratatouille', 'Légumes provençaux mijotés', 'plat_principal', 4, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 3 DAY), 11.00, TRUE),
+(4, 'CU001', 'Quiche Lorraine', 'Tarte salée aux lardons et fromage', 'entree', 2, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 3 DAY), 8.50, TRUE),
+(5, 'CU001', 'Soupe à l\'Oignon', 'Soupe aux oignons gratinée', 'entree', 2, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 3 DAY), 6.50, TRUE),
+(6, 'CU001', 'Cassoulet', 'Ragoût de haricots blancs et viandes', 'plat_principal', 4, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 3 DAY), 13.00, TRUE),
+(7, 'CU001', 'Croque-Monsieur', 'Sandwich grillé au jambon et fromage', 'entree', 1, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 3 DAY), 7.00, TRUE),
+(8, 'CU001', 'Tarte Tatin', 'Tarte renversée aux pommes caramélisées', 'dessert', 2, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 3 DAY), 5.50, TRUE),
+(9, 'CU001', 'Salade Niçoise', 'Salade composée méditerranéenne', 'entree', 1, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 3 DAY), 9.50, TRUE),
+(10, 'CU001', 'Blanquette de Veau', 'Ragoût de veau à la sauce crémée', 'plat_principal', 4, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 3 DAY), 16.00, TRUE);
+
+-- Création d'un client de test
+INSERT INTO Utilisateurs 
+(id, nom, prenom, adresse, telephone, email, mot_de_passe, type_utilisateur)
+VALUES 
+('CL001', 'Dupont', 'Jean', '15 Avenue des Champs, Paris', '0607080910', 'jean.dupont@email.com', SHA2('client123', 256), 'client');
+
+INSERT INTO Clients (id_utilisateur) VALUES ('CL001');
