@@ -1,0 +1,263 @@
+using System;
+using System.Collections.Generic; // Required for List
+using MySql.Data.MySqlClient;
+
+class Program
+{
+    static void Main()
+    {
+        string connectionString = "server=localhost;database=LivinParis;user=root;password=Eg.19052005;";
+        MySqlConnection connection = new MySqlConnection(connectionString);
+
+        // Initialize platsExistants
+        List<string> platsExistants = new List<string>
+        {
+            "Boeuf Bourguignon - 15.50€",
+            "Coq au Vin - 14.00€",
+            "Ratatouille - 11.00€",
+            "Quiche Lorraine - 8.50€",
+            "Soupe à l'Oignon - 6.50€",
+            "Cassoulet - 13.00€"
+        };
+
+        try
+        {
+            connection.Open();
+            Console.WriteLine("✅ Connexion réussie à MySQL !");
+
+            Console.Write("Entrez votre identifiant (ex: CL001 ou CU001) : ");
+            string userId = Console.ReadLine();
+
+            string userType = "";
+            if (userId.StartsWith("CL")) userType = "client";
+            else if (userId.StartsWith("CU")) userType = "cuisinier";
+            else
+            {
+                Console.WriteLine("❌ Identifiant invalide. Il doit commencer par CL ou CU.");
+                return;
+            }
+
+            MySqlCommand checkUserCmd = new MySqlCommand($"SELECT * FROM Utilisateurs WHERE id = @id", connection);
+            checkUserCmd.Parameters.AddWithValue("@id", userId);
+            var reader = checkUserCmd.ExecuteReader();
+
+            if (!reader.HasRows)
+            {
+                reader.Close();
+                Console.Write("Nom : ");
+                string nom = Console.ReadLine();
+                Console.Write("Prénom : ");
+                string prenom = Console.ReadLine();
+                Console.Write("Adresse : ");
+                string adresse = Console.ReadLine();
+                Console.Write("Téléphone : ");
+                string telephone = Console.ReadLine();
+                Console.Write("Email : ");
+                string email = Console.ReadLine();
+                Console.Write("Mot de passe : ");
+                string motDePasse = Console.ReadLine();
+
+                MySqlCommand addUserCmd = new MySqlCommand(
+                    "INSERT INTO Utilisateurs (id, nom, prenom, adresse, telephone, email, mot_de_passe, type_utilisateur) " +
+                    "VALUES (@id, @nom, @prenom, @adresse, @telephone, @email, @motDePasse, @typeUtilisateur)", connection);
+                addUserCmd.Parameters.AddWithValue("@id", userId);
+                addUserCmd.Parameters.AddWithValue("@nom", nom);
+                addUserCmd.Parameters.AddWithValue("@prenom", prenom);
+                addUserCmd.Parameters.AddWithValue("@adresse", adresse);
+                addUserCmd.Parameters.AddWithValue("@telephone", telephone);
+                addUserCmd.Parameters.AddWithValue("@email", email);
+                addUserCmd.Parameters.AddWithValue("@motDePasse", motDePasse);
+                addUserCmd.Parameters.AddWithValue("@typeUtilisateur", userType);
+                addUserCmd.ExecuteNonQuery();
+
+                Console.WriteLine($"✅ Utilisateur {nom} {prenom} ajouté avec succès !");
+            }
+            else
+            {
+                reader.Close();
+                Console.WriteLine($"🔹 Bienvenue {userId} !");
+            }
+
+            if (userType == "client")
+            {
+                Console.WriteLine("1️⃣ Voir la liste des plats");
+                Console.WriteLine("2️⃣ Passer une commande");
+                Console.WriteLine("3️⃣ Quitter");
+                Console.Write("Votre choix : ");
+                string choix = Console.ReadLine();
+
+                if (choix == "1")
+                {
+                    Console.WriteLine("\n🍽️ Liste des plats disponibles :");
+                    for (int i = 0; i < platsExistants.Count; i++)
+                    {
+                        Console.WriteLine($"➡️ ID: {i + 1}, Plat: {platsExistants[i]}");
+                    }
+                }
+                else if (choix == "2")
+                {
+                    Console.Write("Entrez l'ID du plat que vous voulez commander : ");
+                    int platId = int.Parse(Console.ReadLine()) - 1;
+
+                    if (platId < 0 || platId >= platsExistants.Count)
+                    {
+                        Console.WriteLine("❌ ID de plat invalide.");
+                        return;
+                    }
+
+                    Console.Write("Quantité : ");
+                    int quantite = int.Parse(Console.ReadLine());
+
+                    string[] platDetails = platsExistants[platId].Split(" - ");
+                    string nomPlat = platDetails[0];
+                    decimal prix = decimal.Parse(platDetails[1].Replace("€", ""));
+
+                    decimal total = prix * quantite;
+                    Console.WriteLine($"\n📝 Récapitulatif de la commande :");
+                    Console.WriteLine($"- Plat : {nomPlat}");
+                    Console.WriteLine($"- Quantité : {quantite}");
+                    Console.WriteLine($"- Total : {total} €");
+                    Console.WriteLine($"- Temps de livraison estimé : 30 minutes");
+
+                    MySqlCommand addCommandeCmd = new MySqlCommand(
+                        "INSERT INTO Commandes (client_id, total) VALUES (@clientId, @total)", connection);
+                    addCommandeCmd.Parameters.AddWithValue("@clientId", userId);
+                    addCommandeCmd.Parameters.AddWithValue("@total", total);
+                    addCommandeCmd.ExecuteNonQuery();
+                    Console.WriteLine($"✅ Commande enregistrée avec succès !");
+                }
+            }
+
+            if (userType == "cuisinier")
+            {
+                Console.WriteLine("1️⃣ Ajouter un plat");
+                Console.WriteLine("2️⃣ Consulter une commande");
+                Console.Write("Votre choix : ");
+                string choix = Console.ReadLine();
+
+                if (choix == "1")
+                {
+                    Console.Write("Nom du plat : ");
+                    string nomPlat = Console.ReadLine();
+                    Console.Write("Prix : ");
+                    decimal prix = decimal.Parse(Console.ReadLine());
+
+                    platsExistants.Add($"{nomPlat} - {prix}€");
+                    Console.WriteLine($"✅ Plat ajouté : {nomPlat} - {prix}€");
+                }
+                else if (choix == "2")
+                {
+                    Console.Write("Nom du client : ");
+                    string nomClient = Console.ReadLine();
+                    Console.Write("Prénom du client : ");
+                    string prenomClient = Console.ReadLine();
+
+                    Random rand = new Random();
+                    int randomPlatId = rand.Next(platsExistants.Count);
+                    int quantite = rand.Next(1, 4);
+
+                    string[] platDetails = platsExistants[randomPlatId].Split(" - ");
+                    string nomPlat = platDetails[0];
+                    decimal prix = decimal.Parse(platDetails[1].Replace("€", ""));
+                    decimal total = prix * quantite;
+
+                    Console.WriteLine($"\n📦 Commande de {nomClient} {prenomClient} :");
+                    Console.WriteLine($"- Plat : {nomPlat}");
+                    Console.WriteLine($"- Quantité : {quantite}");
+                    Console.WriteLine($"- Total : {total} €");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Erreur : {ex.Message}");
+        }
+        finally
+        {
+            connection.Close();
+        }
+    }
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+-- Création de la base de données si elle n'existe pas encore
+CREATE DATABASE IF NOT EXISTS LivinParis;
+USE LivinParis;
+
+-- Désactivation des clés étrangères pour éviter les conflits lors de la suppression
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Suppression des tables si elles existent déjà
+DROP TABLE IF EXISTS LignesCommande;
+DROP TABLE IF EXISTS Commandes;
+DROP TABLE IF EXISTS Plats;
+DROP TABLE IF EXISTS Utilisateurs;
+
+-- Réactivation des clés étrangères
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- Création de la table Utilisateurs (clients et cuisiniers)
+CREATE TABLE Utilisateurs (
+    id VARCHAR(10) PRIMARY KEY, -- IDs comme 'CL001' ou 'CU001'
+    nom VARCHAR(50) NOT NULL,
+    prenom VARCHAR(50) NOT NULL,
+    adresse VARCHAR(255) NOT NULL,
+    telephone VARCHAR(20) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    mot_de_passe VARCHAR(255) NOT NULL,
+    type_utilisateur ENUM('client', 'cuisinier') NOT NULL
+);
+
+-- Création de la table Plats (proposés par les cuisiniers)
+CREATE TABLE Plats (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom_plat VARCHAR(100) NOT NULL,
+    prix DECIMAL(5,2) NOT NULL,
+    cuisinier_id VARCHAR(10) NOT NULL,
+    FOREIGN KEY (cuisinier_id) REFERENCES Utilisateurs(id) ON DELETE CASCADE
+);
+
+-- Création de la table Commandes (passées par les clients)
+CREATE TABLE Commandes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    client_id VARCHAR(10) NOT NULL,
+    total DECIMAL(8,2) NOT NULL,
+    date_commande DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES Utilisateurs(id) ON DELETE CASCADE
+);
+
+-- Création de la table LignesCommande (détails de chaque commande)
+CREATE TABLE LignesCommande (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    commande_id INT NOT NULL,
+    plat_id INT NOT NULL,
+    quantite INT NOT NULL,
+    prix_unitaire DECIMAL(5,2) NOT NULL,
+    FOREIGN KEY (commande_id) REFERENCES Commandes(id) ON DELETE CASCADE,
+    FOREIGN KEY (plat_id) REFERENCES Plats(id) ON DELETE CASCADE
+);
+
+-- Insertion des utilisateurs de test (client et cuisinier)
+INSERT INTO Utilisateurs (id, nom, prenom, adresse, telephone, email, mot_de_passe, type_utilisateur) VALUES
+('CL001', 'Dupont', 'Jean', '123 Rue de Paris', '0612345678', 'jean.dupont@gmail.com', 'password', 'client'),
+('CU001', 'Martin', 'Pierre', '456 Avenue de France', '0698765432', 'pierre.martin@gmail.com', 'password', 'cuisinier');
+
+-- Insertion des plats proposés par le cuisinier
+INSERT INTO Plats (nom_plat, prix, cuisinier_id) VALUES
+('Boeuf Bourguignon', 15.50, 'CU001'),
+('Coq au Vin', 14.00, 'CU001'),
+('Ratatouille', 11.00, 'CU001'),
+('Quiche Lorraine', 8.50, 'CU001'),
+('Soupe à l\'Oignon', 6.50, 'CU001'),
+('Cassoulet', 13.00, 'CU001');
+
+-- Insertion d'une commande de test passée par le client
+INSERT INTO Commandes (client_id, total) VALUES ('CL001', 45.00);
+
+-- Insertion des lignes de commande (détails de la commande)
+INSERT INTO LignesCommande (commande_id, plat_id, quantite, prix_unitaire) VALUES
+(1, 1, 2, 15.50), -- 2x Boeuf Bourguignon
+(1, 3, 1, 11.00); -- 1x Ratatouille
