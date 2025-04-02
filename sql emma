@@ -183,81 +183,78 @@ class Program
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
--- Création de la base de données si elle n'existe pas encore
-CREATE DATABASE IF NOT EXISTS LivinParis;
+-- Dans MySQL Workbench ou ligne de commande
+DROP DATABASE IF EXISTS LivinParis;
+CREATE DATABASE LivinParis;
 USE LivinParis;
 
--- Désactivation des clés étrangères pour éviter les conflits lors de la suppression
-SET FOREIGN_KEY_CHECKS = 0;
-
--- Suppression des tables si elles existent déjà
-DROP TABLE IF EXISTS LignesCommande;
-DROP TABLE IF EXISTS Commandes;
-DROP TABLE IF EXISTS Plats;
-DROP TABLE IF EXISTS Utilisateurs;
-
--- Réactivation des clés étrangères
-SET FOREIGN_KEY_CHECKS = 1;
-
--- Création de la table Utilisateurs (clients et cuisiniers)
-CREATE TABLE Utilisateurs (
-    id VARCHAR(10) PRIMARY KEY, -- IDs comme 'CL001' ou 'CU001'
+-- Table Utilisateurs
+CREATE TABLE IF NOT EXISTS Utilisateurs (
+    id VARCHAR(10) PRIMARY KEY,
     nom VARCHAR(50) NOT NULL,
     prenom VARCHAR(50) NOT NULL,
     adresse VARCHAR(255) NOT NULL,
     telephone VARCHAR(20) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
     mot_de_passe VARCHAR(255) NOT NULL,
-    type_utilisateur ENUM('client', 'cuisinier') NOT NULL
-);
+    type_utilisateur ENUM('client', 'cuisinier') NOT NULL,
+    date_inscription DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
 
--- Création de la table Plats (proposés par les cuisiniers)
-CREATE TABLE Plats (
+-- Table Clients
+CREATE TABLE IF NOT EXISTS Clients (
+    id_utilisateur VARCHAR(10) PRIMARY KEY,
+    est_entreprise BOOLEAN DEFAULT FALSE,
+    nom_entreprise VARCHAR(100),
+    nom_referent VARCHAR(50),
+    FOREIGN KEY (id_utilisateur) REFERENCES Utilisateurs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Table Cuisiniers
+CREATE TABLE IF NOT EXISTS Cuisiniers (
+    id_utilisateur VARCHAR(10) PRIMARY KEY,
+    note_moyenne DECIMAL(3,2) DEFAULT 0.0,
+    nb_livraisons INT DEFAULT 0,
+    FOREIGN KEY (id_utilisateur) REFERENCES Utilisateurs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Table Plats
+CREATE TABLE IF NOT EXISTS Plats (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    nom_plat VARCHAR(100) NOT NULL,
-    prix DECIMAL(5,2) NOT NULL,
     cuisinier_id VARCHAR(10) NOT NULL,
-    FOREIGN KEY (cuisinier_id) REFERENCES Utilisateurs(id) ON DELETE CASCADE
-);
+    nom VARCHAR(100) NOT NULL,
+    description TEXT,
+    type ENUM('entree', 'plat_principal', 'dessert') NOT NULL,
+    nb_personnes INT NOT NULL,
+    date_fabrication DATE NOT NULL,
+    date_peremption DATE NOT NULL,
+    prix DECIMAL(10,2) NOT NULL,
+    nationalite VARCHAR(50),
+    regime VARCHAR(50),
+    ingredients TEXT,
+    disponible BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (cuisinier_id) REFERENCES Cuisiniers(id_utilisateur) ON DELETE CASCADE
+) ENGINE=InnoDB;
 
--- Création de la table Commandes (passées par les clients)
-CREATE TABLE Commandes (
+-- Table Commandes
+CREATE TABLE IF NOT EXISTS Commandes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     client_id VARCHAR(10) NOT NULL,
-    total DECIMAL(8,2) NOT NULL,
+    cuisinier_id VARCHAR(10) NOT NULL,
     date_commande DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (client_id) REFERENCES Utilisateurs(id) ON DELETE CASCADE
-);
+    total DECIMAL(10,2) NOT NULL,
+    statut ENUM('en_attente', 'preparation', 'livraison', 'livree', 'annulee') DEFAULT 'en_attente',
+    FOREIGN KEY (client_id) REFERENCES Clients(id_utilisateur),
+    FOREIGN KEY (cuisinier_id) REFERENCES Cuisiniers(id_utilisateur)
+) ENGINE=InnoDB;
 
--- Création de la table LignesCommande (détails de chaque commande)
-CREATE TABLE LignesCommande (
+-- Table PlatsCommandes
+CREATE TABLE IF NOT EXISTS PlatsCommandes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     commande_id INT NOT NULL,
     plat_id INT NOT NULL,
     quantite INT NOT NULL,
-    prix_unitaire DECIMAL(5,2) NOT NULL,
+    prix_unitaire DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (commande_id) REFERENCES Commandes(id) ON DELETE CASCADE,
-    FOREIGN KEY (plat_id) REFERENCES Plats(id) ON DELETE CASCADE
-);
-
--- Insertion des utilisateurs de test (client et cuisinier)
-INSERT INTO Utilisateurs (id, nom, prenom, adresse, telephone, email, mot_de_passe, type_utilisateur) VALUES
-('CL001', 'Dupont', 'Jean', '123 Rue de Paris', '0612345678', 'jean.dupont@gmail.com', 'password', 'client'),
-('CU001', 'Martin', 'Pierre', '456 Avenue de France', '0698765432', 'pierre.martin@gmail.com', 'password', 'cuisinier');
-
--- Insertion des plats proposés par le cuisinier
-INSERT INTO Plats (nom_plat, prix, cuisinier_id) VALUES
-('Boeuf Bourguignon', 15.50, 'CU001'),
-('Coq au Vin', 14.00, 'CU001'),
-('Ratatouille', 11.00, 'CU001'),
-('Quiche Lorraine', 8.50, 'CU001'),
-('Soupe à l\'Oignon', 6.50, 'CU001'),
-('Cassoulet', 13.00, 'CU001');
-
--- Insertion d'une commande de test passée par le client
-INSERT INTO Commandes (client_id, total) VALUES ('CL001', 45.00);
-
--- Insertion des lignes de commande (détails de la commande)
-INSERT INTO LignesCommande (commande_id, plat_id, quantite, prix_unitaire) VALUES
-(1, 1, 2, 15.50), -- 2x Boeuf Bourguignon
-(1, 3, 1, 11.00); -- 1x Ratatouille
+    FOREIGN KEY (plat_id) REFERENCES Plats(id)
+) ENGINE=InnoDB;
