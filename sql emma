@@ -12,13 +12,13 @@ class Program
             try
             {
                 connexion.Open();
-                Console.WriteLine("Connexion reussie a MySQL");
+                Console.WriteLine("Connexion réussie à MySQL");
 
                 Console.Write("Entrez votre identifiant (CL001 ou CU001) : ");
                 string idUtilisateur = Console.ReadLine().ToUpper();
 
                 string typeUtilisateur = idUtilisateur.StartsWith("CL") ? "client" :
-                                      idUtilisateur.StartsWith("CU") ? "cuisinier" : "";
+                                         idUtilisateur.StartsWith("CU") ? "cuisinier" : "";
 
                 if (string.IsNullOrEmpty(typeUtilisateur))
                 {
@@ -76,8 +76,8 @@ class Program
     {
         string requete = "SELECT id, nom, prix, description FROM Plats WHERE disponible = 1";
 
-        Console.WriteLine("\nLISTE DES PLATS");
-        Console.WriteLine("--------------");
+        Console.WriteLine("\nLISTE DES PLATS DISPONIBLES");
+        Console.WriteLine("---------------------------");
 
         using (MySqlCommand cmd = new MySqlCommand(requete, connexion))
         {
@@ -85,11 +85,10 @@ class Program
             {
                 while (reader.Read())
                 {
-                    Console.WriteLine("\nID: " + reader["id"]);
-                    Console.WriteLine("Nom: " + reader["nom"]);
-                    Console.WriteLine("Prix: " + reader["prix"] + " EUR");
-                    Console.WriteLine("Description: " + reader["description"]);
-                    Console.WriteLine("--------------");
+                    Console.WriteLine($"ID: {reader["id"]} - {reader["nom"]}");
+                    Console.WriteLine($"Prix: {reader["prix"]} EUR");
+                    Console.WriteLine($"Description: {reader["description"]}");
+                    Console.WriteLine("---------------------------");
                 }
             }
         }
@@ -97,15 +96,28 @@ class Program
 
     static void CommanderPlat(MySqlConnection connexion, string idClient)
     {
+        // Vérifier si le client existe dans la table Clients
+        string checkClientQuery = "SELECT COUNT(*) FROM Clients WHERE id_utilisateur = @idClient";
+        using (MySqlCommand checkCmd = new MySqlCommand(checkClientQuery, connexion))
+        {
+            checkCmd.Parameters.AddWithValue("@idClient", idClient);
+            int clientExists = Convert.ToInt32(checkCmd.ExecuteScalar());
+
+            if (clientExists == 0)
+            {
+                Console.WriteLine("Erreur : L'identifiant client n'existe pas.");
+                return;
+            }
+        }
+
         AfficherPlats(connexion);
 
-        Console.Write("\nEntrez l'ID du plat a commander : ");
+        Console.Write("\nEntrez l'ID du plat à commander : ");
         int idPlat = Convert.ToInt32(Console.ReadLine());
 
-        Console.Write("Quantite : ");
+        Console.Write("Quantité : ");
         int quantite = Convert.ToInt32(Console.ReadLine());
 
-        // Recuperer le cuisinier et le prix du plat
         string requetePlat = "SELECT cuisinier_id, prix FROM Plats WHERE id = @idPlat AND disponible = 1";
         string idCuisinier = "";
         decimal prix = 0;
@@ -130,7 +142,6 @@ class Program
 
         decimal total = prix * quantite;
 
-        // Creer la commande
         string requeteCommande = "INSERT INTO Commandes (client_id, cuisinier_id, total, date_commande) " +
                                "VALUES (@idClient, @idCuisinier, @total, NOW())";
 
@@ -142,7 +153,7 @@ class Program
             cmd.ExecuteNonQuery();
         }
 
-        Console.WriteLine("Commande effectuee avec succes");
+        Console.WriteLine("Commande effectuée avec succès !");
     }
 
     static void MenuCuisinier(MySqlConnection connexion, string idCuisinier)
@@ -200,7 +211,7 @@ class Program
             cmd.ExecuteNonQuery();
         }
 
-        Console.WriteLine("Plat ajoute avec succes");
+        Console.WriteLine("Plat ajouté avec succès !");
     }
 
     static void AfficherPlatsCuisinier(MySqlConnection connexion, string idCuisinier)
@@ -217,16 +228,16 @@ class Program
             {
                 while (reader.Read())
                 {
-                    Console.WriteLine("\nID: " + reader["id"]);
-                    Console.WriteLine("Nom: " + reader["nom"]);
-                    Console.WriteLine("Prix: " + reader["prix"] + " EUR");
-                    Console.WriteLine("Description: " + reader["description"]);
+                    Console.WriteLine($"ID: {reader["id"]} - {reader["nom"]}");
+                    Console.WriteLine($"Prix: {reader["prix"]} EUR");
+                    Console.WriteLine($"Description: {reader["description"]}");
                     Console.WriteLine("---------");
                 }
             }
         }
     }
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
